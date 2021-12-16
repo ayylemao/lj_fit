@@ -9,6 +9,8 @@ real*8, allocatable, dimension(:,:) :: chff_lj_params
 real*8, allocatable, dimension(:,:) :: o_f_array
 real*8, allocatable, dimension(:,:,:) :: crd_data
 real*8, allocatable, dimension(:) :: ref_energies
+character(len=100), allocatable, dimension(:) :: crd_names
+
 
 integer :: natoms, nfiles, nspecies, nbonds, nonefour, nopt, npep_atoms
 integer, allocatable, dimension(:,:) :: bond_array
@@ -16,7 +18,7 @@ integer, allocatable, dimension(:,:) :: excl_array
 real*8 :: r_off, r_on
 public ordering_array, lj_species, bond_array, nbonds, o_f_species
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
-public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies
+public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
 
 public nonefour
 
@@ -58,7 +60,6 @@ subroutine load_data(base_name, ref_file)
     implicit none
     character(len=100) :: base_name, enum, file_name, ref_file
     real*8, allocatable, dimension(:,:) :: crd_conf
-    character(len=100), allocatable, dimension(:) :: crd_names
     integer :: i, iatom, idir
     
     allocate(crd_data(natoms, 3, nfiles))
@@ -248,7 +249,7 @@ real*8 function get_eps_stand(iatom, x)
     optimize = is_opt(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = label_to_opt_index(at_to_label(iatom))
-        get_eps_stand = x(2*lj_index-1)
+        get_eps_stand = -1*abs(x(2*lj_index-1))
         return
     else
         lj_index = lab_to_lj_i(at_to_label(iatom))
@@ -265,7 +266,7 @@ real*8 function get_rmin_stand(iatom, x)
     optimize = is_opt(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = label_to_opt_index(at_to_label(iatom))
-        get_rmin_stand = x(2*lj_index)
+        get_rmin_stand = abs(x(2*lj_index))
         return
     else
         lj_index = lab_to_lj_i(at_to_label(iatom))
@@ -282,11 +283,11 @@ real*8 function get_eps_spec(iatom, x)
     optimize = is_opt(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
-        get_eps_spec = x(2*lj_index-1)
+        get_eps_spec = -1*abs(x(2*lj_index-1))
         return
     else if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .false.)) then
         lj_index = label_to_opt_index(at_to_label(iatom))
-        get_eps_spec = x(2*lj_index-1)
+        get_eps_spec = -1*abs(x(2*lj_index-1))
         return
     else 
         lj_index = lab_to_lj_i(at_to_label(iatom))
@@ -302,11 +303,11 @@ real*8 function get_rmin_spec(iatom, x)
     optimize = is_opt(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
-        get_rmin_spec = x(2*lj_index)
+        get_rmin_spec = abs(x(2*lj_index))
         return
     else if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .false.)) then
         lj_index = label_to_opt_index(at_to_label(iatom))
-        get_rmin_spec = x(2*lj_index)
+        get_rmin_spec = abs(x(2*lj_index))
         return
     else 
         lj_index = lab_to_lj_i(at_to_label(iatom))
@@ -318,8 +319,8 @@ subroutine get_lj_energy(crd, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
     real*8, dimension(natoms, 3) :: crd
-    integer :: iatom, jatom, bond_dist
-    real*8, dimension(36) :: x
+    integer :: iatom, jatom, bond_dist, i
+    real*8, dimension(36) :: x, curr_sol
     
     energy = 0.0 
     curr_lj_energy = 0.0
@@ -332,6 +333,12 @@ subroutine get_lj_energy(crd, energy, x)
                 eps2 = get_eps_stand(jatom, x)
                 rmin1 = get_rmin_stand(iatom, x)
                 rmin2 = get_rmin_stand(jatom, x)  
+                if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
+                do i = 1, nopt+5
+                    write(*,*)
+                    write(*,*) x(2*i-1), x(2*i) 
+                end do
+                end if
                 curr_lj_energy = calc_lj_pair(eps1, rmin1, eps2, rmin2, dist_ij)
                 curr_lj_energy = curr_lj_energy*vswitch(dist_ij, r_on, r_off)
             else if (bond_dist == 3) then

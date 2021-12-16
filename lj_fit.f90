@@ -6,7 +6,7 @@ implicit none
 character(len=100) :: base_name, lj_param_file, onefour_file, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_dir, onefour_species_file
 character(len=100) :: ref_name
-character(len=100), allocatable, dimension(:) :: crd_names
+!character(len=100), allocatable, dimension(:) :: crd_names
 real*8, dimension(:,:), allocatable :: search_range
 real*8, dimension(36) :: init_val_search, x
 real*8 :: energy
@@ -55,23 +55,36 @@ do i = nopt+1, nopt + 5
 end do
 close(69) 
 
-call init_search_range(search_range)
+!do i = 1, nopt+5
+!    write(*,*) init_val_search(2*i-1), init_val_search(2*i)
+!end do
 
+call init_search_range(search_range)
+!do i = 1, 1!nfiles
+!    call get_lj_energy(crd_data(:,:,i), energy, init_val_search)
+!    write(*,*) crd_names(i), energy, ref_energies(i), crd_names(i)
+!end do
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
-             set_maxGens             = 50,               &
+             set_maxGens             = 1000,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .true.,         &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 1.d0,             &
              set_verbose             = verbose,          &
              set_Nprint              = 2)
-           
+!write(*,*) nopt 
 
 call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
-do i = 1, nopt
-    write(*,*) x(i)
+write(*,*) "BEST SOLUTION:"
+do i = 1, nopt+5
+    write(*,*) x(2*i-1), x(2*i)
+end do
+write(*,*) "ENERGIES:"
+do i = 1,nfiles 
+    call get_lj_energy(crd_data(:,:,i), energy, x)
+    write(*,*) energy, ref_energies(i)
 end do
  
 
@@ -84,27 +97,26 @@ real*8 function opt_func(y)
     real*8, dimension(:) :: y
     real*8, dimension(nfiles) :: energies
     real*8 :: curr_energy, min_val, rmse
-    integer i
+    integer i, j
     do i = 1, nfiles       
-    call get_lj_energy(crd_data(:,:,i), curr_energy, y) 
-        energies(i) = curr_energy 
-    !    write(*,*) curr_energy
+        call get_lj_energy(crd_data(:,:,i), curr_energy, y) 
+        energies(i) = curr_energy  
     end do
-    min_val = MINVAL(energies)
-    energies = energies - min_val
-    rmse = 0.0d0
-    do i = 1, nfiles
+    !min_val = MINVAL(energies)
+    !energies = energies - min_val
+    rmse = 0.0d0   
+    do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do
-    write(*,*) "RMSE:", sqrt(rmse), sqrt(rmse/real(nfiles))  
+    write(*,*) "RMSE:", sqrt(rmse)!, sqrt(rmse/real(nfiles))  
     opt_func = sqrt(rmse) 
+
 end function opt_func 
 
 subroutine init_pop(pop)
     real*8, dimension(:,:), intent(out) :: pop
     real*8 :: ran
     integer :: popSize, i, j
-
     popSize = size(pop, dim=2)
     do i = 1, popSize
         do j = 1, 2*(nopt+5)
@@ -113,6 +125,10 @@ subroutine init_pop(pop)
             pop(j,i) = pop(j,i) + init_val_search(j)*0.8
         end do
     end do
+    !do i = 1, 2*(nopt+5)
+    !    write(*,*) pop(i, 1)
+    !end do
+
 end subroutine init_pop
 
 
@@ -131,34 +147,58 @@ subroutine init_search_range(search_range)
     implicit none
     real*8, allocatable, dimension(:,:) :: search_range
     real*8 :: eps_min, eps_max, rmin_min, rmin_max
+    integer i,j
     if (.not. allocated(search_range)) allocate(search_range(2, 2*(nopt+5)))
-    do i = 1, 2*(nopt+5)
-        search_range(1, i) = 1.5*init_val_search(i)
-        search_range(2, i) = 0.5*init_val_search(i)
+    do i = 1, nopt+5
+        !eps parameters search range
+        search_range(1, 2*i-1) = 1.5*init_val_search(2*i-1)
+        search_range(2, 2*i-1) = 0.5*init_val_search(2*i-1)
+        !rmin parameters search range
+        search_range(1, 2*i) = 0.5*init_val_search(2*i)
+        search_range(2, 2*i) = 1.5*init_val_search(2*i)
     end do
+    
+    !do i = 1, nopt+5
+
+    !        write(*,*) search_range(1, 2*i), init_val_search(2*i), search_range(2,2*i)
+
+    !end do
 end subroutine init_search_range
 
 
 logical function feasible(y)
     implicit none    
     real*8, dimension(:) :: y 
+    integer :: i,j
+     
     do i = 1, 2*(nopt+5)
-        if (y(i) .ge. 1.5*init_val_search(i)) then
+        if (abs(y(i)) .ge. 2.0*abs(init_val_search(i))) then
             feasible = .false.
+            !write(*,*) feasible, y(i), init_val_search(i)*2.0, "sb smaller"
             return
-        else if (y(i) .le. 0.5*init_val_search(i)) then
+        else if (abs(y(i)) .le. 0.25*(init_val_search(i))) then
             feasible = .false.
+            !write(*,*) feasible, y(i), init_val_search(i)*0.25, "sb larger"
             return
+        else if (i .le. nopt+5) then
+            if (y(2*i-1) .ge. 0.0d0) then
+                feasible = .false.
+                return
+            else if (y(2*i) .le. 0.0d0) then
+                feasible = .false.
+                return
+            end if
         else
             feasible = .true.
         end if
     end do
+
 end function feasible
 
 real*8 function sumconstr(y)
     implicit none   
     real*8, dimension(:) :: y
-    sumconstr = 0.0
+    sumconstr = 0.0d0 
 end function sumconstr
 
 end program lj_fit
