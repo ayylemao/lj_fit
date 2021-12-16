@@ -7,16 +7,14 @@ character(len=4), allocatable, dimension(:) :: ordering_array, lj_species
 character(len=4), allocatable, dimension(:) :: opt_species, o_f_species
 real*8, allocatable, dimension(:,:) :: chff_lj_params 
 real*8, allocatable, dimension(:,:) :: o_f_array
-real*8, allocatable, dimension(:,:,:) :: crd_data
+real*8, allocatable, dimension(:,:,:) :: crd_data, dist_array
 real*8, allocatable, dimension(:) :: ref_energies
 character(len=100), allocatable, dimension(:) :: crd_names
-
-
 integer :: natoms, nfiles, nspecies, nbonds, nonefour, nopt, npep_atoms
 integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
 real*8 :: r_off, r_on
-public ordering_array, lj_species, bond_array, nbonds, o_f_species
+public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
 
@@ -88,6 +86,7 @@ subroutine load_data(base_name, ref_file)
         read(69, *) ref_energies(i)
     end do
     close(69)
+    call crt_dist_array()
 end subroutine load_data
 
 ! loads relevant parameters like atom ordering and lj species
@@ -315,11 +314,11 @@ real*8 function get_rmin_spec(iatom, x)
     end if
 end function get_rmin_spec
 
-subroutine get_lj_energy(crd, energy, x)
+subroutine get_lj_energy(ifile, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
-    real*8, dimension(natoms, 3) :: crd
-    integer :: iatom, jatom, bond_dist, i
+    !real*8, dimension(natoms, 3) :: crd
+    integer :: iatom, jatom, bond_dist, i, ifile
     real*8, dimension(36) :: x, curr_sol
     real*8 :: t1, t2 
     call cpu_time(t1)
@@ -327,8 +326,8 @@ subroutine get_lj_energy(crd, energy, x)
     curr_lj_energy = 0.0
     do iatom = 1, npep_atoms
         do jatom = iatom + 1, natoms
-            bond_dist = excl_array(iatom, jatom)
-            dist_ij = get_distance(crd(iatom, :), crd(jatom, :))
+            bond_dist = excl_array(iatom, jatom) 
+            dist_ij = dist_array(iatom, jatom, ifile)
             if (bond_dist .ge. 4) then
                 eps1 = get_eps_stand(iatom, x)
                 eps2 = get_eps_stand(jatom, x)
@@ -373,6 +372,23 @@ real*8 function vswitch(dist, r_on, r_off)
         return
     end if
 end function vswitch
+
+
+subroutine crt_dist_array()
+    implicit none
+    integer :: iatom, jatom, ifile
+!    real*8, allocatable, dimension(:,:,:) :: dist_array
+    if (.not. allocated(dist_array)) allocate(dist_array(natoms, natoms, nfiles))
+      do ifile = 1, nfiles
+        do iatom = 1, natoms
+          do jatom = 1, natoms
+            dist_array(iatom, jatom, ifile) = get_distance(crd_data(iatom, :, ifile),&
+                                                           crd_data(jatom, :, ifile))
+          end do
+        end do
+      end do
+end subroutine crt_dist_array
+
 
 subroutine get_excl_array(bond_file)
     implicit none

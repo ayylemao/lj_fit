@@ -76,7 +76,7 @@ do i = 1, nopt+5
 end do
 write(*,*) "ENERGIES:"
 do i = 1,nfiles 
-    call get_lj_energy(crd_data(:,:,i), energy, x)
+    call get_lj_energy(i, energy, x)
     write(*,*) energy, ref_energies(i)
 end do
  
@@ -107,6 +107,16 @@ real*8 function opt_func(y)
 
 end function opt_func 
 
+subroutine calc_full_lj(energies, y)
+    implicit none
+    real*8, dimension(:) :: y
+    real*8, dimension(:) :: energies
+    integer :: i
+    do i = 1, nfiles
+        call get_lj_energy(i, energies(i), y)
+    end do
+end subroutine calc_full_lj
+
 subroutine init_pop(pop)
     real*8, dimension(:,:), intent(out) :: pop
     real*8 :: ran
@@ -124,15 +134,6 @@ subroutine init_pop(pop)
     !end do
 
 end subroutine init_pop
-
-subroutine calc_full_lj(energies, y)
-    implicit none
-    real*8, dimension(:) :: y
-    real*8, dimension(:) :: energies
-    do i = 1, nfiles
-        call get_lj_energy(crd_data(:,:,i), energies(i), y)
-    end do
-end subroutine calc_full_lj
 
 subroutine init_system(psf_file, lj_param_file, onefour_file, bond_file,&
 opt_file, onefour_species_file)
