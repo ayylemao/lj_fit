@@ -321,7 +321,8 @@ subroutine get_lj_energy(crd, energy, x)
     real*8, dimension(natoms, 3) :: crd
     integer :: iatom, jatom, bond_dist, i
     real*8, dimension(36) :: x, curr_sol
-    
+    real*8 :: t1, t2 
+    call cpu_time(t1)
     energy = 0.0 
     curr_lj_energy = 0.0
     do iatom = 1, npep_atoms
@@ -353,6 +354,8 @@ subroutine get_lj_energy(crd, energy, x)
             curr_lj_energy = 0.0                      
         end do    
     end do
+    call cpu_time(t2)
+    !write(*,*) "t lj calc:", t2-t1
 end subroutine get_lj_energy
 
 real*8 function vswitch(dist, r_on, r_off)

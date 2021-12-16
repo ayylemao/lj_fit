@@ -55,19 +55,12 @@ do i = nopt+1, nopt + 5
 end do
 close(69) 
 
-!do i = 1, nopt+5
-!    write(*,*) init_val_search(2*i-1), init_val_search(2*i)
-!end do
-
 call init_search_range(search_range)
-!do i = 1, 1!nfiles
-!    call get_lj_energy(crd_data(:,:,i), energy, init_val_search)
-!    write(*,*) crd_names(i), energy, ref_energies(i), crd_names(i)
-!end do
+
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
-             set_maxGens             = 1000,               &
+             set_maxGens             = 10,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .true.,         &
              set_mutationStrategy    = DErand1,  &
@@ -88,7 +81,6 @@ do i = 1,nfiles
 end do
  
 
-!write(*,*) opt_func(init_val_search) 
 ! =============== END MAIN ================================================
 
 contains
@@ -98,17 +90,19 @@ real*8 function opt_func(y)
     real*8, dimension(nfiles) :: energies
     real*8 :: curr_energy, min_val, rmse
     integer i, j
-    do i = 1, nfiles       
-        call get_lj_energy(crd_data(:,:,i), curr_energy, y) 
-        energies(i) = curr_energy  
-    end do
+    real*8 :: t1, t2
+    call cpu_time(t1) 
+    call calc_full_lj(energies, y) 
+    call cpu_time(t2)
+    write(*,*) t2-t1 
+
     !min_val = MINVAL(energies)
     !energies = energies - min_val
     rmse = 0.0d0   
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do
-    write(*,*) "RMSE:", sqrt(rmse)!, sqrt(rmse/real(nfiles))  
+    !write(*,*) "RMSE:", sqrt(rmse)!, sqrt(rmse/real(nfiles))  
     opt_func = sqrt(rmse) 
 
 end function opt_func 
@@ -131,6 +125,14 @@ subroutine init_pop(pop)
 
 end subroutine init_pop
 
+subroutine calc_full_lj(energies, y)
+    implicit none
+    real*8, dimension(:) :: y
+    real*8, dimension(:) :: energies
+    do i = 1, nfiles
+        call get_lj_energy(crd_data(:,:,i), energies(i), y)
+    end do
+end subroutine calc_full_lj
 
 subroutine init_system(psf_file, lj_param_file, onefour_file, bond_file,&
 opt_file, onefour_species_file)
