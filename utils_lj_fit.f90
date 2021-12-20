@@ -148,7 +148,7 @@ subroutine load_opt_spec(file_name)
     integer :: i
     open(69, file=file_name, status = 'old')
     read(69, *) nopt
-    if(.not. allocated(opt_species)) allocate(opt_species(nopt))
+    allocate(opt_species(nopt))
     do i = 1, nopt
         read(69, *) opt_species(i)
     end do
@@ -317,11 +317,9 @@ end function get_rmin_spec
 subroutine get_lj_energy(ifile, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
-    !real*8, dimension(natoms, 3) :: crd
     integer :: iatom, jatom, bond_dist, i, ifile
     real*8, dimension(36) :: x, curr_sol
     real*8 :: t1, t2 
-    call cpu_time(t1)
     energy = 0.0 
     curr_lj_energy = 0.0
     do iatom = 1, npep_atoms
@@ -353,8 +351,6 @@ subroutine get_lj_energy(ifile, energy, x)
             curr_lj_energy = 0.0                      
         end do    
     end do
-    call cpu_time(t2)
-    !write(*,*) "t lj calc:", t2-t1
 end subroutine get_lj_energy
 
 real*8 function vswitch(dist, r_on, r_off)
@@ -377,7 +373,6 @@ end function vswitch
 subroutine crt_dist_array()
     implicit none
     integer :: iatom, jatom, ifile
-!    real*8, allocatable, dimension(:,:,:) :: dist_array
     if (.not. allocated(dist_array)) allocate(dist_array(natoms, natoms, nfiles))
       do ifile = 1, nfiles
         do iatom = 1, natoms
@@ -419,8 +414,6 @@ subroutine get_excl_array(bond_file)
             end if
         end do
     end do
-
-
 end subroutine get_excl_array
     
     
