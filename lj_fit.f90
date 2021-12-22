@@ -97,6 +97,8 @@ real*8 function opt_func(y)
     real*8 :: t1, t2
     energies = 0
     call calc_full_lj(energies, y) 
+    ref_val = energies(40)
+    energies = energies - ref_val
     rmse = 0.0d0   
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
