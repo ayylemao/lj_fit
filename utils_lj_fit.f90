@@ -322,7 +322,7 @@ subroutine get_lj_energy(ifile, energy, x)
     real*8 :: t1, t2 
     energy = 0.0 
     curr_lj_energy = 0.0
-    do iatom = 1, natoms 
+    do iatom = 1, npep_atoms 
         do jatom = iatom + 1, natoms
             bond_dist = excl_array(iatom, jatom) 
             dist_ij = dist_array(iatom, jatom, ifile)
@@ -340,10 +340,6 @@ subroutine get_lj_energy(ifile, energy, x)
                 rmin2 = get_rmin_spec(jatom, x)
                 curr_lj_energy = calc_lj_pair(eps1, rmin1, eps2, rmin2, dist_ij)    
                 curr_lj_energy = curr_lj_energy*vswitch(dist_ij, r_on, r_off) 
-            end if
-            if (curr_lj_energy .gt. 1.0) then
-                write(*,'(2I10,2F12.6,I10)') iatom, jatom, curr_lj_energy, dist_ij&
-                                                                        ,bond_dist 
             end if
             energy = energy + curr_lj_energy  
             curr_lj_energy = 0.0                      

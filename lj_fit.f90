@@ -54,51 +54,33 @@ print_helper(17) = "CT3"
 print_helper(18) = "NH1"
 print_helper(19) = "O  "
 print_helper(20) = "OB "
-!write(*,*) nopt
-!do i = 1, nopt+5
-!    write(*,'(2F10.5)') init_val_search(2*i-1), init_val_search(2*i)
-!end do
 
-x = init_val_search
-!write(*,*) is_opt(36)
-!do i = 1, 36
-!    write(*,'(A5,F10.5)') at_to_label(i), get_eps_spec(i, init_val_search)
-!end do
+call init_search_range(search_range)
+call DE_init(set_range               = search_range,     &
+             set_popSize             = 100,              &
+             set_maxGens             = 5000,               &
+             set_maxChilds           = 5,                &
+             set_forceRange          = .false.,         &
+             set_mutationStrategy    = DErand1,  &
+             set_crossProb           = 0.9d0,             &
+             set_verbose             = verbose,          &
+             set_Nprint              = 10)
 
-
-
-call get_lj_energy(1, energy, init_val_search)
-write(*,*) energy
-write(*,*) calc_lj_pair(-0.20d0, 1.850d0, -0.5210d0, 1.7680d0, 2.890838d0)
-write(*,*) at_to_label(1), at_to_label(56)
-!call init_search_range(search_range)
-!
-!
-!call DE_init(set_range               = search_range,     &
-!             set_popSize             = 100,              &
-!             set_maxGens             = 5000,               &
-!             set_maxChilds           = 5,                &
-!             set_forceRange          = .false.,         &
-!             set_mutationStrategy    = DErand1,  &
-!             set_crossProb           = 0.9d0,             &
-!             set_verbose             = verbose,          &
-!             set_Nprint              = 10)
-!
-!call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
-!write(*,*) "BEST SOLUTION:"
-!do i = 1, nopt+5
-!    write(*,*) x(2*i-1), x(2*i)
-!end do
-!write(*,*) "CALC ENER", "FIT ENERGY"
-!do i = 1,nfiles 
-!    call get_lj_energy(i, energy, x)
-!    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
-!end do
-!write(*,*) "FINAL RMSE", opt_func(x)
-!write(*,*) "FINAL LJ PARAMS:"
-!do i = 1, nopt+5
-!    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, x(2*i-1), x(2*i)
-!end do
+call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
+write(*,*) "BEST SOLUTION:"
+do i = 1, nopt+5
+    write(*,*) x(2*i-1), x(2*i)
+end do
+write(*,*) "CALC ENER", "FIT ENERGY"
+do i = 1,nfiles 
+    call get_lj_energy(i, energy, x)
+    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
+end do
+write(*,*) "FINAL RMSE", opt_func(x)
+write(*,*) "FINAL LJ PARAMS:"
+do i = 1, nopt+5
+    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, x(2*i-1), x(2*i)
+end do
 
 ! =============== END MAIN ================================================
 
@@ -137,8 +119,8 @@ subroutine init_pop(pop)
     do i = 1, popSize
         do j = 1, 2*(nopt+5)
             call random_number(ran)
-            pop(j,i) = (1.2*init_val_search(j)-0.8*init_val_search(j))*ran
-            pop(j,i) = pop(j,i) + init_val_search(j)*0.8
+            pop(j,i) = (2.0*init_val_search(j)-0.5*init_val_search(j))*ran
+            pop(j,i) = pop(j,i) + init_val_search(j)*0.5
         end do
     end do
 end subroutine init_pop
@@ -178,10 +160,10 @@ logical function feasible(y)
     integer :: i,j
      
     do i = 1, 2*(nopt+5)
-        if (abs(y(i)) .ge. 2.0*abs(init_val_search(i))) then
+        if (abs(y(i)) .ge. 3.0*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.25*(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.1*abs(init_val_search(i))) then
             feasible = .false.
             return
         else
