@@ -227,15 +227,15 @@ integer function label_to_x_vec_o_f(label)
     character(len=3) :: label
     integer :: i, index_x
     if (label == "CT1") then
-        label_to_x_vec_o_f = 14
-    else if (label == "CT3") then
-        label_to_x_vec_o_f = 15
-    else if (label == "NH1") then
         label_to_x_vec_o_f = 16
-    else if (label == "O  ") then
+    else if (label == "CT3") then
         label_to_x_vec_o_f = 17
-    else if (label == "OB ") then
+    else if (label == "NH1") then
         label_to_x_vec_o_f = 18
+    else if (label == "O  ") then
+        label_to_x_vec_o_f = 19
+    else if (label == "OB ") then
+        label_to_x_vec_o_f = 20
     end if
 end function label_to_x_vec_o_f
     

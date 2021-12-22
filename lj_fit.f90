@@ -54,14 +54,23 @@ print_helper(17) = "CT3"
 print_helper(18) = "NH1"
 print_helper(19) = "O  "
 print_helper(20) = "OB "
-write(*,*) nopt
-do i = 1, nopt+5
-    write(*,'(2F10.5)') init_val_search(2*i-1), init_val_search(2*i)
-end do
+!write(*,*) nopt
+!do i = 1, nopt+5
+!    write(*,'(2F10.5)') init_val_search(2*i-1), init_val_search(2*i)
+!end do
 
-write(*,*) is_opt(52)
+x = init_val_search
+!write(*,*) is_opt(36)
+!do i = 1, 36
+!    write(*,'(A5,F10.5)') at_to_label(i), get_eps_spec(i, init_val_search)
+!end do
+
+
+
 call get_lj_energy(1, energy, init_val_search)
 write(*,*) energy
+write(*,*) calc_lj_pair(-0.20d0, 1.850d0, -0.5210d0, 1.7680d0, 2.890838d0)
+write(*,*) at_to_label(1), at_to_label(56)
 !call init_search_range(search_range)
 !
 !
