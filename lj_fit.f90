@@ -23,7 +23,7 @@ bond_file = "def_params/bond_data.dat"
 onefour_file = "def_params/one_four_lj.dat"
 psf_file = "def_params/ab_0.psf"
 crd_dir = "crd/"
-ref_name = "data/dft_ref_energies.dat"
+ref_name = "data/dft_ref_energies_avg.dat"
 opt_file = "def_params/opt_species.dat"
 onefour_species_file = "def_params/one_four_species.dat"
 
@@ -62,7 +62,7 @@ call init_search_range(search_range)
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
              set_maxGens             = 5000,               &
-             set_maxChilds           = 5,                &
+             set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
@@ -97,10 +97,13 @@ real*8 function opt_func(y)
     real*8 :: t1, t2
     energies = 0
     call calc_full_lj(energies, y) 
+    ref_val = sum(energies)/size(energies)
+    energies = energies - ref_val
     rmse = 0.0d0   
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do 
+    write(*,*) sqrt(rmse)
     opt_func = sqrt(rmse) 
 end function opt_func 
 
