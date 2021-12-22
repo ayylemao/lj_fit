@@ -7,8 +7,8 @@ character(len=100) :: base_name, lj_param_file, onefour_file, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_dir, onefour_species_file
 character(len=100) :: ref_name
 real*8, dimension(:,:), allocatable :: search_range
-real*8, dimension(36) :: init_val_search, x
-character(len=3), dimension(36) :: print_helper
+real*8, dimension(40) :: init_val_search, x
+character(len=3), dimension(40) :: print_helper
 real*8 :: energy, rmse
 integer :: i, j
 logical :: verbose = .true.
@@ -48,42 +48,48 @@ do i = nopt+1, nopt + 5
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
-print_helper(1:13) = opt_species
-print_helper(14) = "CT1"
-print_helper(15) = "CT3"
-print_helper(16) = "NH1"
-print_helper(17) = "O  "
-print_helper(18) = "OB "
-
-
-call init_search_range(search_range)
-
-
-call DE_init(set_range               = search_range,     &
-             set_popSize             = 100,              &
-             set_maxGens             = 5000,               &
-             set_maxChilds           = 5,                &
-             set_forceRange          = .false.,         &
-             set_mutationStrategy    = DErand1,  &
-             set_crossProb           = 0.9d0,             &
-             set_verbose             = verbose,          &
-             set_Nprint              = 10)
-
-call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
-write(*,*) "BEST SOLUTION:"
+print_helper(1:15) = opt_species
+print_helper(16) = "CT1"
+print_helper(17) = "CT3"
+print_helper(18) = "NH1"
+print_helper(19) = "O  "
+print_helper(20) = "OB "
+write(*,*) nopt
 do i = 1, nopt+5
-    write(*,*) x(2*i-1), x(2*i)
+    write(*,'(2F10.5)') init_val_search(2*i-1), init_val_search(2*i)
 end do
-write(*,*) "CALC ENER", "FIT ENERGY"
-do i = 1,nfiles 
-    call get_lj_energy(i, energy, x)
-    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
-end do
-write(*,*) "FINAL RMSE", opt_func(x)
-write(*,*) "FINAL LJ PARAMS:"
-do i = 1, nopt+5
-    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, x(2*i-1), x(2*i)
-end do
+
+write(*,*) is_opt(52)
+call get_lj_energy(1, energy, init_val_search)
+write(*,*) energy
+!call init_search_range(search_range)
+!
+!
+!call DE_init(set_range               = search_range,     &
+!             set_popSize             = 100,              &
+!             set_maxGens             = 5000,               &
+!             set_maxChilds           = 5,                &
+!             set_forceRange          = .false.,         &
+!             set_mutationStrategy    = DErand1,  &
+!             set_crossProb           = 0.9d0,             &
+!             set_verbose             = verbose,          &
+!             set_Nprint              = 10)
+!
+!call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
+!write(*,*) "BEST SOLUTION:"
+!do i = 1, nopt+5
+!    write(*,*) x(2*i-1), x(2*i)
+!end do
+!write(*,*) "CALC ENER", "FIT ENERGY"
+!do i = 1,nfiles 
+!    call get_lj_energy(i, energy, x)
+!    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
+!end do
+!write(*,*) "FINAL RMSE", opt_func(x)
+!write(*,*) "FINAL LJ PARAMS:"
+!do i = 1, nopt+5
+!    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, x(2*i-1), x(2*i)
+!end do
 
 ! =============== END MAIN ================================================
 

@@ -244,7 +244,7 @@ end function label_to_x_vec_o_f
 real*8 function get_eps_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+5)) :: x
     optimize = is_opt(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = label_to_opt_index(at_to_label(iatom))
@@ -261,7 +261,7 @@ end function get_eps_stand
 real*8 function get_rmin_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+5)) :: x
     optimize = is_opt(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = label_to_opt_index(at_to_label(iatom))
@@ -278,7 +278,7 @@ end function get_rmin_stand
 real*8 function get_eps_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+5)) :: x
     optimize = is_opt(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
@@ -298,7 +298,7 @@ end function get_eps_spec
 real*8 function get_rmin_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+5)) :: x
     optimize = is_opt(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
@@ -318,11 +318,11 @@ subroutine get_lj_energy(ifile, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
     integer :: iatom, jatom, bond_dist, i, ifile
-    real*8, dimension(36) :: x, curr_sol
+    real*8, dimension(2*(nopt+5)) :: x, curr_sol
     real*8 :: t1, t2 
     energy = 0.0 
     curr_lj_energy = 0.0
-    do iatom = 1, npep_atoms
+    do iatom = 1, natoms 
         do jatom = iatom + 1, natoms
             bond_dist = excl_array(iatom, jatom) 
             dist_ij = dist_array(iatom, jatom, ifile)
@@ -331,12 +331,6 @@ subroutine get_lj_energy(ifile, energy, x)
                 eps2 = get_eps_stand(jatom, x)
                 rmin1 = get_rmin_stand(iatom, x)
                 rmin2 = get_rmin_stand(jatom, x)  
-                if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
-                do i = 1, nopt+5
-                    write(*,*)
-                    write(*,*) x(2*i-1), x(2*i) 
-                end do
-                end if
                 curr_lj_energy = calc_lj_pair(eps1, rmin1, eps2, rmin2, dist_ij)
                 curr_lj_energy = curr_lj_energy*vswitch(dist_ij, r_on, r_off)
             else if (bond_dist == 3) then
@@ -346,6 +340,10 @@ subroutine get_lj_energy(ifile, energy, x)
                 rmin2 = get_rmin_spec(jatom, x)
                 curr_lj_energy = calc_lj_pair(eps1, rmin1, eps2, rmin2, dist_ij)    
                 curr_lj_energy = curr_lj_energy*vswitch(dist_ij, r_on, r_off) 
+            end if
+            if (curr_lj_energy .gt. 1.0) then
+                write(*,'(2I10,2F12.6,I10)') iatom, jatom, curr_lj_energy, dist_ij&
+                                                                        ,bond_dist 
             end if
             energy = energy + curr_lj_energy  
             curr_lj_energy = 0.0                      
