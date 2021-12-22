@@ -102,8 +102,7 @@ real*8 function opt_func(y)
     rmse = 0.0d0   
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
-    end do 
-    write(*,*) sqrt(rmse)
+    end do  
     opt_func = sqrt(rmse) 
 end function opt_func 
 
