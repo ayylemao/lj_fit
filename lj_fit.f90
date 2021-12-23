@@ -79,7 +79,7 @@ end do
 write(*,*) "FINAL RMSE", opt_func(x)
 write(*,*) "FINAL LJ PARAMS:"
 do i = 1, nopt+5
-    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, x(2*i-1), x(2*i)
+    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
 end do
 
 ! =============== END MAIN ================================================
