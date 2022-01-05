@@ -23,7 +23,7 @@ bond_file = "def_params/bond_data.dat"
 onefour_file = "def_params/one_four_lj.dat"
 psf_file = "def_params/ab_0.psf"
 crd_dir = "crd/"
-ref_name = "data/dft_ref_energies_avg.dat"
+ref_name = "data/dft_ref_dcm_wat.dat"
 opt_file = "def_params/opt_species.dat"
 onefour_species_file = "def_params/one_four_species.dat"
 
