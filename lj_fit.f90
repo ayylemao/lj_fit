@@ -60,8 +60,8 @@ call init_search_range(search_range)
 
 
 call DE_init(set_range               = search_range,     &
-             set_popSize             = 100,              &
-             set_maxGens             = 5000,               &
+             set_popSize             = 200,              &
+             set_maxGens             = 10000,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
@@ -165,10 +165,10 @@ logical function feasible(y)
     integer :: i,j
      
     do i = 1, 2*(nopt+5)
-        if (abs(y(i)) .ge. 2.0*abs(init_val_search(i))) then
+        if (abs(y(i)) .ge. 1.5*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.25*(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.5*(init_val_search(i))) then
             feasible = .false.
             return
         else
