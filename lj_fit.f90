@@ -59,13 +59,16 @@ print_helper(18) = "OB "
 call init_search_range(search_range)
 
 
+
+
+
 call DE_init(set_range               = search_range,     &
              set_popSize             = 200,              &
              set_maxGens             = 10000,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
-             set_crossProb           = 0.9d0,             &
+             set_crossProb           = 1.0d0,             &
              set_verbose             = verbose,          &
              set_Nprint              = 10)
 
@@ -150,11 +153,11 @@ subroutine init_search_range(search_range)
     if (.not. allocated(search_range)) allocate(search_range(2, 2*(nopt+5)))
     do i = 1, nopt+5
         !eps parameters search range
-        search_range(1, 2*i-1) = 1.5*init_val_search(2*i-1)
-        search_range(2, 2*i-1) = 0.5*init_val_search(2*i-1)
+        search_range(1, 2*i-1) = 1.8*init_val_search(2*i-1)
+        search_range(2, 2*i-1) = 0.3*init_val_search(2*i-1)
         !rmin parameters search range
-        search_range(1, 2*i) = 0.5*init_val_search(2*i)
-        search_range(2, 2*i) = 1.5*init_val_search(2*i)
+        search_range(1, 2*i) = 0.3*init_val_search(2*i)
+        search_range(2, 2*i) = 1.8*init_val_search(2*i)
     end do
 end subroutine init_search_range
 
@@ -162,8 +165,8 @@ end subroutine init_search_range
 logical function feasible(y)
     implicit none    
     real*8, dimension(:) :: y 
-    integer :: i,j
-     
+    integer :: i,j, h_index
+    real*8 :: eps1, rmin1 
     do i = 1, 2*(nopt+5)
         if (abs(y(i)) .ge. 1.5*abs(init_val_search(i))) then
             feasible = .false.
@@ -175,6 +178,25 @@ logical function feasible(y)
             feasible = .true.
         end if
     end do
+   
+    ! Ugly H atom constraint 
+    h_index = label_to_opt_index("H  ") 
+    eps1 = abs(y(2*h_index-1))
+    rmin1 = abs(y(2*h_index))
+    write(*,'(2F10.5)') eps1/init_val_search(2*h_index-1), &
+                        &rmin1/init_val_search(2*h_index) 
+    if ((eps1 .ge. 1.2*abs(init_val_search(2*h_index-1)) .OR. &
+        &(rmin1 .ge. 1.2*abs(init_val_search(2*h_index))))) then
+        feasible = .false.
+        return
+    else if ((eps1 .le. 0.8*abs(init_val_search(2*h_index-1)) .OR. &
+        &(rmin1 .le. 0.8*abs(init_val_search(2*h_index))))) then
+        feasible = .false.
+    else
+        feasible = .true.
+    end if
+
+
 
 end function feasible
 
