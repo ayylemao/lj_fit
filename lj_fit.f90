@@ -183,8 +183,8 @@ logical function feasible(y)
     h_index = label_to_opt_index("H  ") 
     eps1 = abs(y(2*h_index-1))
     rmin1 = abs(y(2*h_index))
-    write(*,'(2F10.5)') eps1/init_val_search(2*h_index-1), &
-                        &rmin1/init_val_search(2*h_index) 
+    
+   
     if ((eps1 .ge. 1.2*abs(init_val_search(2*h_index-1)) .OR. &
         &(rmin1 .ge. 1.2*abs(init_val_search(2*h_index))))) then
         feasible = .false.
