@@ -13,11 +13,13 @@ character(len=100), allocatable, dimension(:) :: crd_names
 integer :: natoms, nfiles, nspecies, nbonds, nonefour, nopt, npep_atoms
 integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
+integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
+logical, allocatable, dimension(:) :: is_opt_arr
 real*8 :: r_off, r_on
 public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
-
+public stan_lj_index, spec_lj_index, is_opt_arr
 public nonefour
 
 
@@ -238,6 +240,24 @@ integer function label_to_x_vec_o_f(label)
         label_to_x_vec_o_f = 18
     end if
 end function label_to_x_vec_o_f
+
+subroutine calc_look_ups() 
+    implicit none
+    integer :: iatom, lj_index, nopt_atoms
+    integer :: i, j
+    if (.not. allocated(is_opt_arr)) allocate(is_opt_arr(iatom))
+    do iatom = 1, natoms
+       is_opt_arr(iatom) = is_opt(iatom) 
+    end do   
+    if (.not. allocated(stan_lj_index)) allocate(stan_lj_index(natoms))
+    do iatom = 1, natoms
+        if (is_opt_arr(iatom) .eqv. .true.) then
+            stan_lj_index(iatom) = label_to_opt_index(at_to_label(iatom))
+        else
+            stan_lj_index(iatom) = lab_to_lj_i(at_to_label(iatom)) 
+        end if
+    end do
+end subroutine calc_look_ups
     
     
 
@@ -245,13 +265,13 @@ real*8 function get_eps_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
     real*8, dimension(36) :: x
-    optimize = is_opt(iatom) 
+    optimize = is_opt_arr(iatom) 
     if (optimize .eqv. .true.) then
-        lj_index = label_to_opt_index(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_eps_stand = -1*abs(x(2*lj_index-1))
         return
     else
-        lj_index = lab_to_lj_i(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_eps_stand = chff_lj_params(lj_index, 1)
         return
     end if
@@ -262,13 +282,13 @@ real*8 function get_rmin_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
     real*8, dimension(36) :: x
-    optimize = is_opt(iatom) 
+    optimize = is_opt_arr(iatom) 
     if (optimize .eqv. .true.) then
-        lj_index = label_to_opt_index(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_rmin_stand = abs(x(2*lj_index))
         return
     else
-        lj_index = lab_to_lj_i(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_rmin_stand = chff_lj_params(lj_index, 2)
         return
     end if
@@ -279,17 +299,17 @@ real*8 function get_eps_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
     real*8, dimension(36) :: x
-    optimize = is_opt(iatom) 
+    optimize = is_opt_arr(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
         get_eps_spec = -1*abs(x(2*lj_index-1))
         return
     else if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .false.)) then
-        lj_index = label_to_opt_index(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_eps_spec = -1*abs(x(2*lj_index-1))
         return
     else 
-        lj_index = lab_to_lj_i(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_eps_spec = o_f_array(lj_index, 1)
     end if
 end function get_eps_spec
@@ -299,17 +319,17 @@ real*8 function get_rmin_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
     real*8, dimension(36) :: x
-    optimize = is_opt(iatom) 
+    optimize = is_opt_arr(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
         get_rmin_spec = abs(x(2*lj_index))
         return
     else if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .false.)) then
-        lj_index = label_to_opt_index(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_rmin_spec = abs(x(2*lj_index))
         return
     else 
-        lj_index = lab_to_lj_i(at_to_label(iatom))
+        lj_index = stan_lj_index(iatom) 
         get_rmin_spec = o_f_array(lj_index, 2)
     end if
 end function get_rmin_spec

@@ -55,19 +55,22 @@ print_helper(16) = "NH1"
 print_helper(17) = "O  "
 print_helper(18) = "OB "
 
+call calc_look_ups()
+
+
 
 call init_search_range(search_range)
 
 
 call DE_init(set_range               = search_range,     &
-             set_popSize             = 200,              &
-             set_maxGens             = 10000,               &
+             set_popSize             = 100,              &
+             set_maxGens             = 20,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 10)
+             set_Nprint              = 1)
 
 call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
 write(*,*) "BEST SOLUTION:"
