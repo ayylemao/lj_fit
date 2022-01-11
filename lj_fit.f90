@@ -23,6 +23,7 @@ bond_file = "def_params/bond_data.dat"
 onefour_file = "def_params/one_four_lj.dat"
 psf_file = "def_params/ab_0.psf"
 crd_dir = "crd/"
+
 ref_name = "data/dft_ref_energies_avg.dat"
 opt_file = "def_params/opt_species.dat"
 onefour_species_file = "def_params/one_four_species.dat"
@@ -48,12 +49,17 @@ do i = nopt+1, nopt + 5
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
-print_helper(1:15) = opt_species
-print_helper(16) = "CT1"
-print_helper(17) = "CT3"
-print_helper(18) = "NH1"
-print_helper(19) = "O  "
-print_helper(20) = "OB "
+print_helper(1:13) = opt_species
+print_helper(14) = "CT1"
+print_helper(15) = "CT3"
+print_helper(16) = "NH1"
+print_helper(17) = "O  "
+print_helper(18) = "OB "
+
+call calc_look_ups()
+
+
+>>>>>>> opti
 
 call init_search_range(search_range)
 call DE_init(set_range               = search_range,     &
@@ -64,7 +70,7 @@ call DE_init(set_range               = search_range,     &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 10)
+             set_Nprint              = 1)
 
 call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
 write(*,*) "BEST SOLUTION:"
@@ -99,7 +105,7 @@ real*8 function opt_func(y)
     rmse = 0.0d0   
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
-    end do 
+    end do  
     opt_func = sqrt(rmse) 
 end function opt_func 
 
@@ -162,10 +168,10 @@ logical function feasible(y)
     integer :: i,j
      
     do i = 1, 2*(nopt+5)
-        if (abs(y(i)) .ge. 3.0*abs(init_val_search(i))) then
+        if (abs(y(i)) .ge. 1.5*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.1*abs(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.5*(init_val_search(i))) then
             feasible = .false.
             return
         else
