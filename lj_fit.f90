@@ -49,12 +49,12 @@ do i = nopt+1, nopt + 5
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
-print_helper(1:13) = opt_species
-print_helper(14) = "CT1"
-print_helper(15) = "CT3"
-print_helper(16) = "NH1"
-print_helper(17) = "O  "
-print_helper(18) = "OB "
+print_helper(1:15) = opt_species
+print_helper(16) = "CT1"
+print_helper(17) = "CT3"
+print_helper(18) = "NH1"
+print_helper(19) = "O  "
+print_helper(20) = "OB "
 
 call calc_look_ups()
 
