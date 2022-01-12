@@ -71,9 +71,9 @@ call DE_init(set_range               = search_range,     &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
-             set_crossProb           = 1.0d0,             &
+             set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 1)
+             set_Nprint              = 10)
 
 call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
 write(*,*) "BEST SOLUTION:"
@@ -168,8 +168,8 @@ end subroutine init_search_range
 logical function feasible(y)
     implicit none    
     real*8, dimension(:) :: y 
-    integer :: i,j, h_index
-    real*8 :: eps1, rmin1 
+    integer :: i,j, h_index, nh1_index
+    real*8 :: eps1, rmin1, eps2, rmin2
     do i = 1, 2*(nopt+5)
         if (abs(y(i)) .ge. 2.0*abs(init_val_search(i))) then
             feasible = .false.
@@ -182,11 +182,14 @@ logical function feasible(y)
         end if
     end do
    
-    ! Ugly H atom constraint 
+    ! Ugly H atom constraint and NH1 constraint
     h_index = label_to_opt_index("H  ") 
     eps1 = abs(y(2*h_index-1))
     rmin1 = abs(y(2*h_index))
-    
+   
+    nh1_index = label_to_opt_index("NH1")
+    eps2 =  abs(y(2*nh1_index-1))
+    rmin2 = abs(y(2*nh1_index))
    
     if ((eps1 .ge. 1.2*abs(init_val_search(2*h_index-1)) .OR. &
         &(rmin1 .ge. 1.2*abs(init_val_search(2*h_index))))) then
@@ -199,7 +202,16 @@ logical function feasible(y)
         feasible = .true.
     end if
 
-
+     if ((eps2 .ge. 1.2*abs(init_val_search(2*nh1_index-1)) .OR. &
+        &(rmin2 .ge. 1.2*abs(init_val_search(2*nh1_index))))) then
+        feasible = .false.
+        return
+    else if ((eps2 .le. 0.8*abs(init_val_search(2*nh1_index-1)) .OR. &
+        &(rmin2 .le. 0.8*abs(init_val_search(2*nh1_index))))) then
+        feasible = .false.
+    else
+        feasible = .true.
+    end if   
 
 end function feasible
 
