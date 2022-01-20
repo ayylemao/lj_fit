@@ -5,10 +5,10 @@ use utils
 implicit none
 character(len=100) :: base_name, lj_param_file, onefour_file, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_dir, onefour_species_file
-character(len=100) :: ref_name
+character(len=100) :: ref_name, crd_name_file
 real*8, dimension(:,:), allocatable :: search_range
-real*8, dimension(36) :: init_val_search, x
-character(len=3), dimension(36) :: print_helper
+real*8, dimension(:), allocatable :: init_val_search, x
+character(len=3), dimension(:), allocatable :: print_helper
 real*8 :: energy, rmse
 integer :: i, j
 logical :: verbose = .true.
@@ -18,44 +18,53 @@ logical :: verbose = .true.
 
 ! File name declarations
 base_name = "data/test"
-lj_param_file = "def_params/lj_param_chff.dat"
-bond_file = "def_params/bond_data.dat"
-onefour_file = "def_params/one_four_lj.dat"
-psf_file = "def_params/ab_0.psf"
-crd_dir = "crd/"
-ref_name = "data/dft_ref_energies_avg.dat"
-opt_file = "def_params/opt_species.dat"
-onefour_species_file = "def_params/one_four_species.dat"
+lj_param_file = "wat_dim/lj_param_chff.dat"
+bond_file = "wat_dim/bond_data.dat"
+onefour_file = "wat_dim/one_four_lj.dat"
+psf_file = "wat_dim/wat_dim.psf"
+crd_name_file = "crd_wat_dim/crd_names.dat"
+crd_dir = "crd_wat_dim/"
+ref_name = "wat_dim_data/wat_dim_ref.dat"
+opt_file = "wat_dim/opt_species.dat"
+onefour_species_file = "wat_dim/one_four_species.dat"
 
 ! initialize parameters and other things
-call init_params(num_files          =      198,&
+call init_params(num_files          =      1,&
                  cut_on             =   10.0d0,&
                  cut_off            =   12.0d0,&
-                 num_pep_atoms      =   34)
+                 num_pep_atoms      =   6)
 
 call init_system(psf_file, lj_param_file, onefour_file, bond_file,&
 opt_file, onefour_species_file)
-call load_data(crd_dir, ref_name)
+call load_data(crd_name_file, crd_dir, ref_name)
 
+if (.not. allocated(init_val_search)) allocate(init_val_search(2*(nopt+nonefour)))
+if (.not. allocated(x)) allocate(x(2*(nopt+nonefour)))
+if (.not. allocated(print_helper)) allocate(print_helper(nopt+nonefour))
 
 init_val_search=0
-open(69, file="def_params/test_x.dat", status = 'old')
+open(69, file="wat_dim/test_x.dat", status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
 end do
-do i = nopt+1, nopt + 5 
+do i = nopt+1, nopt + nonefour 
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
-print_helper(1:13) = opt_species
-print_helper(14) = "CT1"
-print_helper(15) = "CT3"
-print_helper(16) = "NH1"
-print_helper(17) = "O  "
-print_helper(18) = "OB "
 
+
+
+print_helper(1:2) = opt_species
+!print_helper(14) = "CT1"
+!print_helper(15) = "CT3"
+!print_helper(16) = "NH1"
+!print_helper(17) = "O  "
+!print_helper(18) = "OB "
 call calc_look_ups()
+
+
+
 
 
 
@@ -63,18 +72,20 @@ call init_search_range(search_range)
 
 
 call DE_init(set_range               = search_range,     &
-             set_popSize             = 200,              &
-             set_maxGens             = 100000,               &
-             set_maxChilds           = 2,                &
+             set_popSize             = 100,              &
+             set_maxGens             = 10,               &
+             set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 10)
+             set_Nprint              = 1)
 
-call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
+!call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop) 
+
+call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search) 
 write(*,*) "BEST SOLUTION:"
-do i = 1, nopt+5
+do i = 1, nopt+nonefour
     write(*,*) x(2*i-1), x(2*i)
 end do
 write(*,*) "CALC ENER", "FIT ENERGY"
@@ -84,9 +95,20 @@ do i = 1,nfiles
 end do
 write(*,*) "FINAL RMSE", opt_func(x)
 write(*,*) "FINAL LJ PARAMS:"
-do i = 1, nopt+5
+do i = 1, nopt+nonefour
     write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
 end do
+write(*,*)
+do i = 1, nopt
+    write(*,'(A14,2F10.5)') "   ", -abs(init_val_search(2*i-1)), abs(init_val_search(2*i))
+end do
+
+write(*,*)
+do i = 1, nopt
+    write(*,'(A14,2F10.5)') "   ", -abs(init_val_search(2*i-1))/-abs(x(2*i-1)), &
+                                   abs(init_val_search(2*i))/abs(x(2*i))
+end do
+
 
 ! =============== END MAIN ================================================
 
@@ -101,12 +123,17 @@ real*8 function opt_func(y)
     energies = 0
     call calc_full_lj(energies, y) 
     ref_val = sum(energies)/size(energies)
-    energies = energies - ref_val
+!    energies = energies - ref_val
+
     rmse = 0.0d0   
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do  
     opt_func = sqrt(rmse) 
+!    do i = 1, nopt
+!        write(*,'(2F10.5)') -abs(y(2*i-1)), abs(y(2*i))
+!    end do
+!    write(*,*)  
 end function opt_func 
 
 subroutine calc_full_lj(energies, y)
@@ -125,9 +152,9 @@ subroutine init_pop(pop)
     integer :: popSize, i, j
     popSize = size(pop, dim=2)
     do i = 1, popSize
-        do j = 1, 2*(nopt+5)
+        do j = 1, 2*(nopt+nonefour)
             call random_number(ran)
-            pop(j,i) = (1.2*init_val_search(j)-0.8*init_val_search(j))*ran
+            pop(j,i) = (1.8*init_val_search(j)-0.8*init_val_search(j))*ran
             pop(j,i) = pop(j,i) + init_val_search(j)*0.8
         end do
     end do
@@ -150,8 +177,8 @@ subroutine init_search_range(search_range)
     real*8, allocatable, dimension(:,:) :: search_range
     real*8 :: eps_min, eps_max, rmin_min, rmin_max
     integer i,j
-    if (.not. allocated(search_range)) allocate(search_range(2, 2*(nopt+5)))
-    do i = 1, nopt+5
+    if (.not. allocated(search_range)) allocate(search_range(2, 2*(nopt+nonefour)))
+    do i = 1, nopt+nonefour
         !eps parameters search range
         search_range(1, 2*i-1) = 1.5*init_val_search(2*i-1)
         search_range(2, 2*i-1) = 0.5*init_val_search(2*i-1)
@@ -167,11 +194,11 @@ logical function feasible(y)
     real*8, dimension(:) :: y 
     integer :: i,j
      
-    do i = 1, 2*(nopt+5)
+    do i = 1, 2*(nopt+nonefour)
         if (abs(y(i)) .ge. 1.5*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.5*(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.5*abs(init_val_search(i))) then
             feasible = .false.
             return
         else

@@ -56,15 +56,15 @@ subroutine read_crd_file(file_name, crd_conf)
 end subroutine read_crd_file
 
 
-subroutine load_data(base_name, ref_file)
+subroutine load_data(crd_name_file, base_name, ref_file)
     implicit none
-    character(len=100) :: base_name, enum, file_name, ref_file
+    character(len=100) :: base_name, enum, file_name, ref_file, crd_name_file
     real*8, allocatable, dimension(:,:) :: crd_conf
     integer :: i, iatom, idir
     
     allocate(crd_data(natoms, 3, nfiles))
     allocate(crd_names(nfiles))
-    open(69, file="crd/crd_names.dat", status = 'old')
+    open(69, file=crd_name_file, status = 'old')
     do i = 1, nfiles
         read(69,*) crd_names(i)
     end do
@@ -204,6 +204,10 @@ end function is_opt
 
 logical function is_o_f(iatom)
     integer :: iatom, i
+    if (nonefour == 0) then
+        is_o_f = .false.
+        return
+    end if
     do i = 1, nonefour 
         if (at_to_label(iatom) == o_f_species(i)) then
             is_o_f = .true.
@@ -225,6 +229,7 @@ integer function label_to_opt_index(label)
     end do
 end function label_to_opt_index
 
+!THIS NEEDS TO BE MADE GENERAL
 integer function label_to_x_vec_o_f(label)
     character(len=3) :: label
     integer :: i, index_x
@@ -308,7 +313,7 @@ real*8 function get_eps_spec(iatom, x)
         lj_index = stan_lj_index(iatom) 
         get_eps_spec = -1*abs(x(2*lj_index-1))
         return
-    else 
+    else  
         lj_index = stan_lj_index(iatom) 
         get_eps_spec = o_f_array(lj_index, 1)
     end if
@@ -338,7 +343,7 @@ subroutine get_lj_energy(ifile, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
     integer :: iatom, jatom, bond_dist, i, ifile
-    real*8, dimension(36) :: x, curr_sol
+    real*8, dimension(nopt*2) :: x, curr_sol
     real*8 :: t1, t2 
     energy = 0.0 
     curr_lj_energy = 0.0
