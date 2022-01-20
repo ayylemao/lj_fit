@@ -64,15 +64,17 @@ call init_search_range(search_range)
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 200,              &
-             set_maxGens             = 100000,               &
+             set_maxGens             = 50000,               &
              set_maxChilds           = 2,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 10)
+             set_Nprint              = 1)
 
-call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
+!call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
+call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
+
 write(*,*) "BEST SOLUTION:"
 do i = 1, nopt+5
     write(*,*) x(2*i-1), x(2*i)
@@ -168,10 +170,10 @@ logical function feasible(y)
     integer :: i,j
      
     do i = 1, 2*(nopt+5)
-        if (abs(y(i)) .ge. 1.5*abs(init_val_search(i))) then
+        if (abs(y(i)) .ge. 1.3*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.5*(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.7*abs(init_val_search(i))) then
             feasible = .false.
             return
         else
