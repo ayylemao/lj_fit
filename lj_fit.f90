@@ -21,7 +21,7 @@ base_name = "data/test"
 lj_param_file = "wat_dim/lj_param_chff.dat"
 bond_file = "wat_dim/bond_data.dat"
 onefour_file = "wat_dim/one_four_lj.dat"
-psf_file = "wat_dim/wat_dim.psf"
+psf_file = "wat_dim/wat_dim_0.psf"
 crd_name_file = "crd_wat_dim/crd_names.dat"
 crd_dir = "crd_wat_dim/"
 ref_name = "wat_dim_data/wat_dim_ref.dat"
@@ -29,7 +29,7 @@ opt_file = "wat_dim/opt_species.dat"
 onefour_species_file = "wat_dim/one_four_species.dat"
 
 ! initialize parameters and other things
-call init_params(num_files          =      1,&
+call init_params(num_files          =      50,&
                  cut_on             =   10.0d0,&
                  cut_off            =   12.0d0,&
                  num_pep_atoms      =   6)
@@ -73,7 +73,7 @@ call init_search_range(search_range)
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
-             set_maxGens             = 10,               &
+             set_maxGens             = 10000,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
@@ -81,9 +81,9 @@ call DE_init(set_range               = search_range,     &
              set_verbose             = verbose,          &
              set_Nprint              = 1)
 
-!call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop) 
+call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop) 
 
-call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search) 
+!call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search) 
 write(*,*) "BEST SOLUTION:"
 do i = 1, nopt+nonefour
     write(*,*) x(2*i-1), x(2*i)
@@ -93,7 +93,7 @@ do i = 1,nfiles
     call get_lj_energy(i, energy, x)
     write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
 end do
-write(*,*) "FINAL RMSE", opt_func(x)
+write(*,*) "FINAL RMSE", opt_func(x)/SQRT(float(nfiles))
 write(*,*) "FINAL LJ PARAMS:"
 do i = 1, nopt+nonefour
     write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
@@ -104,10 +104,10 @@ do i = 1, nopt
 end do
 
 write(*,*)
-do i = 1, nopt
-    write(*,'(A14,2F10.5)') "   ", -abs(init_val_search(2*i-1))/-abs(x(2*i-1)), &
-                                   abs(init_val_search(2*i))/abs(x(2*i))
-end do
+!do i = 1, nopt
+!    write(*,'(A14,2F10.5)') "   ", -abs(init_val_search(2*i-1))/-abs(x(2*i-1)), &
+!                                   abs(init_val_search(2*i))/abs(x(2*i))
+!end do
 
 
 ! =============== END MAIN ================================================
@@ -130,10 +130,6 @@ real*8 function opt_func(y)
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do  
     opt_func = sqrt(rmse) 
-!    do i = 1, nopt
-!        write(*,'(2F10.5)') -abs(y(2*i-1)), abs(y(2*i))
-!    end do
-!    write(*,*)  
 end function opt_func 
 
 subroutine calc_full_lj(energies, y)
@@ -154,8 +150,8 @@ subroutine init_pop(pop)
     do i = 1, popSize
         do j = 1, 2*(nopt+nonefour)
             call random_number(ran)
-            pop(j,i) = (1.8*init_val_search(j)-0.8*init_val_search(j))*ran
-            pop(j,i) = pop(j,i) + init_val_search(j)*0.8
+            pop(j,i) = (10*init_val_search(j)-0.01*init_val_search(j))*ran
+            pop(j,i) = pop(j,i) + init_val_search(j)*0.01
         end do
     end do
 end subroutine init_pop
@@ -195,10 +191,10 @@ logical function feasible(y)
     integer :: i,j
      
     do i = 1, 2*(nopt+nonefour)
-        if (abs(y(i)) .ge. 1.5*abs(init_val_search(i))) then
+        if (abs(y(i)) .ge. 10*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.5*abs(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.01*abs(init_val_search(i))) then
             feasible = .false.
             return
         else

@@ -657,7 +657,7 @@ subroutine DE_optimize(func,feasible,sumconstr,x,guess,init_pop)
     if(verbose.and..not.feasible(x)) write(*, '(A)') "WARNING: No feasible solution was found!"
     write(*, '(A)') "Starting local simplex optimization:"
     write(*,'(A28,ES21.10)') "Solution before refinement: ", fpop(bestindx)
-    if(feasible(x)) call DE_simplex(func,feasible,x)
+    !if(feasible(x)) call DE_simplex(func,feasible,x)
     write(*,'(A28,ES21.10)') "Solution after  refinement: ", func(x)
     return
 end subroutine DE_optimize
