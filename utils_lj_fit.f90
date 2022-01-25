@@ -266,7 +266,7 @@ end subroutine calc_look_ups
 real*8 function get_eps_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+num_one_four)) :: x
     optimize = is_opt_arr(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = stan_lj_index(iatom) 
@@ -283,7 +283,7 @@ end function get_eps_stand
 real*8 function get_rmin_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+num_one_four)) :: x
     optimize = is_opt_arr(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = stan_lj_index(iatom) 
@@ -300,7 +300,7 @@ end function get_rmin_stand
 real*8 function get_eps_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+num_one_four)) :: x
     optimize = is_opt_arr(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
@@ -320,7 +320,7 @@ end function get_eps_spec
 real*8 function get_rmin_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
-    real*8, dimension(36) :: x
+    real*8, dimension(2*(nopt+num_one_four)) :: x
     optimize = is_opt_arr(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
         lj_index = label_to_x_vec_o_f(at_to_label(iatom))
@@ -340,7 +340,7 @@ subroutine get_lj_energy(ifile, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
     integer :: iatom, jatom, bond_dist, i, ifile
-    real*8, dimension(36) :: x, curr_sol
+    real*8, dimension(2*(nopt+num_one_four)) :: x, curr_sol
     real*8 :: t1, t2 
     energy = 0.0 
     curr_lj_energy = 0.0

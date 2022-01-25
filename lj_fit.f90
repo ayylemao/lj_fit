@@ -16,6 +16,7 @@ logical :: verbose = .true.
 ! ============ START MAIN =================================================
 
 
+
 ! File name declarations
 base_name = "data/test"
 lj_param_file = "def_params/lj_param_chff.dat"
@@ -53,18 +54,7 @@ end do
 close(69) 
 
 call init_print_helper(print_helper)
-
-!write(*,*) size(print_helper)
-!print_helper(1:13) = opt_species
-!print_helper(14) = "CT1"
-!print_helper(15) = "CT3"
-!print_helper(16) = "NH1"
-!print_helper(17) = "O  "
-!print_helper(18) = "OB "
-
 call calc_look_ups()
-
-
 call init_search_range(search_range)
 
 
@@ -79,7 +69,7 @@ call DE_init(set_range               = search_range,     &
              set_Nprint              = 1)
 
 
-!call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
+call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
 !
 !write(*,*) "BEST SOLUTION:"
 !do i = 1, nopt+5
@@ -99,40 +89,7 @@ call DE_init(set_range               = search_range,     &
 ! =============== END MAIN ================================================
 
 contains
-
-
-subroutine init_print_helper(print_helper)
-    implicit none
-    character(len=3), allocatable, dimension(:) :: print_helper
-    integer :: i, j, k
-    if (.not. allocated(print_helper)) allocate(print_helper(2*(nopt+num_one_four)))
-    print_helper(1:nopt) = opt_species
-    do i = nopt+1, nopt+num_one_four
-        do j = 1, nonefour
-            do k = 1, nspecies
-                if (o_f_species(k) == all_o_f(j)) then
-                    write(*,*) o_f_species(k), all_o_f(j) 
-                    print_helper(i) = o_f_species(k)
-                
-                end if
-            end do
-        end do
-    end do
-    do i = 1, size(o_f_species)
-        write(*,*) o_f_species(i), nspecies, nonefour
-    end do
-    !do i = 1, nopt+num_one_four
-    !    write(*,*) print_helper(i)
-    !end do
-    !print_helper(14) = "CT1"
-    !print_helper(15) = "CT3"
-    !print_helper(16) = "NH1"
-    !print_helper(17) = "O  "
-    !print_helper(18) = "OB "
-end subroutine init_print_helper
-
-
-    
+ 
 real*8 function opt_func(y)
     real*8, dimension(:) :: y
     real*8, dimension(nfiles) :: energies
@@ -163,9 +120,9 @@ end subroutine calc_full_lj
 subroutine init_pop(pop)
     real*8, dimension(:,:), intent(out) :: pop
     real*8 :: ran
-    integer :: popSize, i, j
-    popSize = size(pop, dim=2)
-    do i = 1, popSize
+    integer :: popsize, i, j
+    popsize = size(pop, dim=2)
+    do i = 1, popsize
         do j = 1, 2*(nopt+5)
             call random_number(ran)
             pop(j,i) = (1.2*init_val_search(j)-0.8*init_val_search(j))*ran
@@ -227,6 +184,39 @@ real*8 function sumconstr(y)
     real*8, dimension(:) :: y
     sumconstr = 0.0d0 
 end function sumconstr
+
+subroutine init_print_helper(print_helper)
+    implicit none
+    character(len=3), allocatable, dimension(:) :: print_helper
+    integer :: i, j, k
+   
+    if (.not. allocated(print_helper)) allocate(print_helper(nopt+num_one_four))
+    print_helper(1:nopt) = opt_species
+    k = 1
+    do i = nopt+1, nopt+num_one_four
+        do j = k, nopt
+            if (check_o_f(print_helper(j)) .eqv. .true.) then
+                print_helper(i) = print_helper(j)
+                k = j+1
+                exit
+            end if
+        end do
+    end do
+end subroutine init_print_helper
+
+logical function check_o_f(label)
+    integer :: i
+    character(len=3) :: label
+    do i = 1, nonefour
+        if (label == o_f_species(i)) then
+            check_o_f = .true.
+            return
+        else
+            check_o_f = .false.
+        end if
+    end do
+end function check_o_f
+
 
 end program lj_fit
 
