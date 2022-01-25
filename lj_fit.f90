@@ -51,7 +51,9 @@ do i = nopt+1, nopt + 5
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
-!allocate(print_helper(2*(nopt+num_one_four)))
+
+call init_print_helper(print_helper)
+
 !write(*,*) size(print_helper)
 !print_helper(1:13) = opt_species
 !print_helper(14) = "CT1"
@@ -62,9 +64,6 @@ close(69)
 
 call calc_look_ups()
 
-do i = 1, nspecies
-    write(*,*) all_o_f
-end do
 
 call init_search_range(search_range)
 
@@ -102,19 +101,35 @@ call DE_init(set_range               = search_range,     &
 contains
 
 
-!subroutine init_print_helper(print_helper)
-!    implicit none
-!    character(len=3), dimension(:) :: print_helper
-!    if (.not. allocated(print_helper)) allocate(print_helper(2*(nopt+num_one_four)))
-!    print_helper(1:nopt) = opt_species
-!    do i = 1, nonefour
-!        if o_f_species(i) == 
-!    print_helper(14) = "CT1"
-!    print_helper(15) = "CT3"
-!    print_helper(16) = "NH1"
-!    print_helper(17) = "O  "
-!    print_helper(18) = "OB "
-!end subroutine init_print_helper
+subroutine init_print_helper(print_helper)
+    implicit none
+    character(len=3), allocatable, dimension(:) :: print_helper
+    integer :: i, j, k
+    if (.not. allocated(print_helper)) allocate(print_helper(2*(nopt+num_one_four)))
+    print_helper(1:nopt) = opt_species
+    do i = nopt+1, nopt+num_one_four
+        do j = 1, nonefour
+            do k = 1, nspecies
+                if (o_f_species(k) == all_o_f(j)) then
+                    write(*,*) o_f_species(k), all_o_f(j) 
+                    print_helper(i) = o_f_species(k)
+                
+                end if
+            end do
+        end do
+    end do
+    do i = 1, size(o_f_species)
+        write(*,*) o_f_species(i), nspecies, nonefour
+    end do
+    !do i = 1, nopt+num_one_four
+    !    write(*,*) print_helper(i)
+    !end do
+    !print_helper(14) = "CT1"
+    !print_helper(15) = "CT3"
+    !print_helper(16) = "NH1"
+    !print_helper(17) = "O  "
+    !print_helper(18) = "OB "
+end subroutine init_print_helper
 
 
     

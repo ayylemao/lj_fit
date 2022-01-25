@@ -117,9 +117,8 @@ subroutine load_one_four_params(file_name, name_file)
     read(69, *) junk 
     if (.not. allocated(o_f_array)) allocate(o_f_array(nspecies, 2))
     if (.not. allocated(all_o_f)) allocate(all_o_f(nspecies)) 
-    do i = 1, nspecies
-        write(*,*) i
-        read(69, *) all_o_f, o_f_array(i, 1), o_f_array(i, 2)
+    do i = 1, nspecies 
+        read(69, *) all_o_f(i), o_f_array(i, 1), o_f_array(i, 2)
     end do
     close(69) 
     open(69, file=name_file, status = 'old')
