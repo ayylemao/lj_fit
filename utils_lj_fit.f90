@@ -4,13 +4,14 @@ use graphf
 implicit none
 
 character(len=4), allocatable, dimension(:) :: ordering_array, lj_species
-character(len=4), allocatable, dimension(:) :: opt_species, o_f_species
+character(len=4), allocatable, dimension(:) :: opt_species, o_f_species, all_o_f
 real*8, allocatable, dimension(:,:) :: chff_lj_params 
 real*8, allocatable, dimension(:,:) :: o_f_array
 real*8, allocatable, dimension(:,:,:) :: crd_data, dist_array
 real*8, allocatable, dimension(:) :: ref_energies
 character(len=100), allocatable, dimension(:) :: crd_names
 integer :: natoms, nfiles, nspecies, nbonds, nonefour, nopt, npep_atoms
+integer :: num_one_four
 integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
 integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
@@ -20,20 +21,21 @@ public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
 public stan_lj_index, spec_lj_index, is_opt_arr
-public nonefour
+public nonefour, num_one_four, all_o_f
 
 
 contains
 ! initializes parameters of system
 
-subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms)
+subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour)
     implicit none
-    integer :: num_atoms, num_files, num_pep_atoms, num_species 
+    integer :: num_atoms, num_files, num_pep_atoms, num_species, n_onefour
     real*8 :: cut_on, cut_off 
     nfiles = num_files
     r_on = cut_on
     r_off = cut_off 
     npep_atoms = num_pep_atoms
+    num_one_four = n_onefour
    
 end subroutine init_params
 
@@ -114,9 +116,10 @@ subroutine load_one_four_params(file_name, name_file)
     open(69, file=file_name, status = 'old')
     read(69, *) junk 
     if (.not. allocated(o_f_array)) allocate(o_f_array(nspecies, 2))
-    
+    if (.not. allocated(all_o_f)) allocate(all_o_f(nspecies)) 
     do i = 1, nspecies
-        read(69, *) junk, o_f_array(i, 1), o_f_array(i, 2)
+        write(*,*) i
+        read(69, *) all_o_f, o_f_array(i, 1), o_f_array(i, 2)
     end do
     close(69) 
     open(69, file=name_file, status = 'old')

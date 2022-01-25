@@ -7,8 +7,8 @@ character(len=100) :: base_name, lj_param_file, onefour_file, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_dir, onefour_species_file
 character(len=100) :: ref_name
 real*8, dimension(:,:), allocatable :: search_range
-real*8, dimension(36) :: init_val_search, x
-character(len=3), dimension(36) :: print_helper
+real*8, allocatable, dimension(:) :: init_val_search, x
+character(len=3), allocatable, dimension(:) :: print_helper
 real*8 :: energy, rmse
 integer :: i, j
 logical :: verbose = .true.
@@ -31,12 +31,15 @@ onefour_species_file = "def_params/one_four_species.dat"
 call init_params(num_files          =      198,&
                  cut_on             =   10.0d0,&
                  cut_off            =   12.0d0,&
-                 num_pep_atoms      =   34)
+                 num_pep_atoms      =       34,&
+                 n_onefour          =        5)
 
 call init_system(psf_file, lj_param_file, onefour_file, bond_file,&
 opt_file, onefour_species_file)
 call load_data(crd_dir, ref_name)
 
+allocate(init_val_search(2*(nopt+num_one_four)))
+allocate(x(2*(nopt+num_one_four)))
 
 init_val_search=0
 open(69, file="def_params/test_x.dat", status = 'old')
@@ -48,16 +51,20 @@ do i = nopt+1, nopt + 5
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
-print_helper(1:13) = opt_species
-print_helper(14) = "CT1"
-print_helper(15) = "CT3"
-print_helper(16) = "NH1"
-print_helper(17) = "O  "
-print_helper(18) = "OB "
+!allocate(print_helper(2*(nopt+num_one_four)))
+!write(*,*) size(print_helper)
+!print_helper(1:13) = opt_species
+!print_helper(14) = "CT1"
+!print_helper(15) = "CT3"
+!print_helper(16) = "NH1"
+!print_helper(17) = "O  "
+!print_helper(18) = "OB "
 
 call calc_look_ups()
 
-
+do i = 1, nspecies
+    write(*,*) all_o_f
+end do
 
 call init_search_range(search_range)
 
@@ -72,27 +79,44 @@ call DE_init(set_range               = search_range,     &
              set_verbose             = verbose,          &
              set_Nprint              = 1)
 
-!call DE_optimize(opt_func, feasible, sumconstr, x, init_pop=init_pop)
-call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
 
-write(*,*) "BEST SOLUTION:"
-do i = 1, nopt+5
-    write(*,*) x(2*i-1), x(2*i)
-end do
-write(*,*) "CALC ENER", "FIT ENERGY"
-do i = 1,nfiles 
-    call get_lj_energy(i, energy, x)
-    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
-end do
-write(*,*) "FINAL RMSE", opt_func(x)
-write(*,*) "FINAL LJ PARAMS:"
-do i = 1, nopt+5
-    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
-end do
+!call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
+!
+!write(*,*) "BEST SOLUTION:"
+!do i = 1, nopt+5
+!    write(*,*) x(2*i-1), x(2*i)
+!end do
+!write(*,*) "CALC ENER", "FIT ENERGY"
+!do i = 1,nfiles 
+!    call get_lj_energy(i, energy, x)
+!    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
+!end do
+!write(*,*) "FINAL RMSE", opt_func(x)
+!write(*,*) "FINAL LJ PARAMS:"
+!do i = 1, nopt+5
+!    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
+!end do
 
 ! =============== END MAIN ================================================
 
 contains
+
+
+!subroutine init_print_helper(print_helper)
+!    implicit none
+!    character(len=3), dimension(:) :: print_helper
+!    if (.not. allocated(print_helper)) allocate(print_helper(2*(nopt+num_one_four)))
+!    print_helper(1:nopt) = opt_species
+!    do i = 1, nonefour
+!        if o_f_species(i) == 
+!    print_helper(14) = "CT1"
+!    print_helper(15) = "CT3"
+!    print_helper(16) = "NH1"
+!    print_helper(17) = "O  "
+!    print_helper(18) = "OB "
+!end subroutine init_print_helper
+
+
     
 real*8 function opt_func(y)
     real*8, dimension(:) :: y
