@@ -29,10 +29,10 @@ opt_file = "wat_dim/opt_species.dat"
 onefour_species_file = "wat_dim/one_four_species.dat"
 
 ! initialize parameters and other things
-call init_params(num_files          =      50,&
+call init_params(num_files          =      198,&
                  cut_on             =   10.0d0,&
                  cut_off            =   12.0d0,&
-                 num_pep_atoms      =   6)
+                 num_pep_atoms      =   150)
 
 call init_system(psf_file, lj_param_file, onefour_file, bond_file,&
 opt_file, onefour_species_file)
@@ -66,14 +66,12 @@ call calc_look_ups()
 
 
 
-
-
 call init_search_range(search_range)
 
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
-             set_maxGens             = 10000,               &
+             set_maxGens             = 500,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
