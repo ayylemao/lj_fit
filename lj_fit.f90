@@ -131,7 +131,7 @@ subroutine init_pop(pop)
     integer :: popsize, i, j
     popsize = size(pop, dim=2)
     do i = 1, popsize
-        do j = 1, 2*(nopt+5)
+        do j = 1, 2*(nopt+num_one_four)
             call random_number(ran)
             pop(j,i) = (1.2*init_val_search(j)-0.8*init_val_search(j))*ran
             pop(j,i) = pop(j,i) + init_val_search(j)*0.8
