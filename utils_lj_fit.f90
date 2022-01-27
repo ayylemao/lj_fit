@@ -17,11 +17,13 @@ integer, allocatable, dimension(:,:) :: excl_array
 integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
 logical, allocatable, dimension(:) :: is_opt_arr
 real*8 :: r_off, r_on
+character(len=3), allocatable, dimension(:) :: print_helper
+
 public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
 public stan_lj_index, spec_lj_index, is_opt_arr
-public nonefour, num_one_four, all_o_f
+public nonefour, num_one_four, all_o_f, print_helper
 
 
 contains
@@ -229,25 +231,20 @@ end function label_to_opt_index
 
 integer function label_to_x_vec_o_f(label)
     character(len=3) :: label
-    integer :: i, index_x
-    if (label == "CT1") then
-        label_to_x_vec_o_f = 14
-    else if (label == "CT3") then
-        label_to_x_vec_o_f = 15
-    else if (label == "NH1") then
-        label_to_x_vec_o_f = 16
-    else if (label == "O  ") then
-        label_to_x_vec_o_f = 17
-    else if (label == "OB ") then
-        label_to_x_vec_o_f = 18
-    end if
+    integer :: i
+    do i = nopt+1, nopt+num_one_four
+        if (label == print_helper(i)) then
+            label_to_x_vec_o_f = i
+        end if
+    end do
+    
 end function label_to_x_vec_o_f
 
 subroutine calc_look_ups() 
     implicit none
     integer :: iatom, lj_index, nopt_atoms
     integer :: i, j
-    if (.not. allocated(is_opt_arr)) allocate(is_opt_arr(iatom))
+    if (.not. allocated(is_opt_arr)) allocate(is_opt_arr(natoms))
     do iatom = 1, natoms
        is_opt_arr(iatom) = is_opt(iatom) 
     end do   
@@ -438,5 +435,36 @@ subroutine get_excl_array(bond_file)
     end do
 end subroutine get_excl_array
     
-    
+ 
+subroutine init_print_helper()
+    implicit none
+
+    integer :: i, j, k
+   
+    if (.not. allocated(print_helper)) allocate(print_helper(nopt+num_one_four))
+    print_helper(1:nopt) = opt_species
+    k = 1
+    do i = nopt+1, nopt+num_one_four
+        do j = k, nopt
+            if (check_o_f(print_helper(j)) .eqv. .true.) then
+                print_helper(i) = print_helper(j)
+                k = j+1
+                exit
+            end if
+        end do
+    end do
+end subroutine init_print_helper
+
+logical function check_o_f(label)
+    integer :: i
+    character(len=3) :: label
+    do i = 1, nonefour
+        if (label == o_f_species(i)) then
+            check_o_f = .true.
+            return
+        else
+            check_o_f = .false.
+        end if
+    end do
+end function check_o_f
 end module utils

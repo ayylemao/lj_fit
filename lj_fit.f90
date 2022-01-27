@@ -8,7 +8,6 @@ character(len=100) :: psf_file, bond_file, crd_dir, onefour_species_file
 character(len=100) :: ref_name
 real*8, dimension(:,:), allocatable :: search_range
 real*8, allocatable, dimension(:) :: init_val_search, x
-character(len=3), allocatable, dimension(:) :: print_helper
 real*8 :: energy, rmse
 integer :: i, j
 logical :: verbose = .true.
@@ -25,7 +24,7 @@ onefour_file = "def_params/one_four_lj.dat"
 psf_file = "def_params/ab_0.psf"
 crd_dir = "crd/"
 ref_name = "data/dft_ref_energies_avg.dat"
-opt_file = "def_params/opt_species.dat"
+opt_file = "def_params/cons_species.dat"
 onefour_species_file = "def_params/one_four_species.dat"
 
 ! initialize parameters and other things
@@ -33,7 +32,7 @@ call init_params(num_files          =      198,&
                  cut_on             =   10.0d0,&
                  cut_off            =   12.0d0,&
                  num_pep_atoms      =       34,&
-                 n_onefour          =        5)
+                 n_onefour          =        1)
 
 call init_system(psf_file, lj_param_file, onefour_file, bond_file,&
 opt_file, onefour_species_file)
@@ -42,26 +41,34 @@ call load_data(crd_dir, ref_name)
 allocate(init_val_search(2*(nopt+num_one_four)))
 allocate(x(2*(nopt+num_one_four)))
 
+
 init_val_search=0
-open(69, file="def_params/test_x.dat", status = 'old')
+open(69, file="def_params/test_oboh1h.dat", status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
 end do
-do i = nopt+1, nopt + 5 
+do i = nopt+1, nopt + num_one_four 
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i)
 end do
 close(69) 
 
-call init_print_helper(print_helper)
+call init_print_helper()
+
 call calc_look_ups()
+
 call init_search_range(search_range)
+
+do i = 1,nopt+num_one_four
+    write(*,*) print_helper(i), init_val_search(2*i-1), init_val_search(2*i)
+end do
+
 
 
 call DE_init(set_range               = search_range,     &
-             set_popSize             = 200,              &
-             set_maxGens             = 50000,               &
-             set_maxChilds           = 2,                &
+             set_popSize             = 100,              &
+             set_maxGens             = 20000,               &
+             set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
@@ -70,21 +77,22 @@ call DE_init(set_range               = search_range,     &
 
 
 call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
-!
-!write(*,*) "BEST SOLUTION:"
-!do i = 1, nopt+5
-!    write(*,*) x(2*i-1), x(2*i)
-!end do
-!write(*,*) "CALC ENER", "FIT ENERGY"
-!do i = 1,nfiles 
-!    call get_lj_energy(i, energy, x)
-!    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
-!end do
-!write(*,*) "FINAL RMSE", opt_func(x)
-!write(*,*) "FINAL LJ PARAMS:"
-!do i = 1, nopt+5
-!    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
-!end do
+
+write(*,*) "BEST SOLUTION:"
+do i = 1, nopt+num_one_four
+    write(*,*) x(2*i-1), x(2*i)
+end do
+write(*,*) "CALC ENER", "FIT ENERGY"
+do i = 1,nfiles 
+    call get_lj_energy(i, energy, x)
+    write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
+end do
+write(*,*) "INITIAL RMSE: ", opt_func(init_val_search)/sqrt(float(nfiles))
+write(*,*) "FINAL RMSE: ", opt_func(x)/sqrt(198.0d0)
+write(*,*) "FINAL LJ PARAMS:"
+do i = 1, nopt+num_one_four
+    write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
+end do
 
 ! =============== END MAIN ================================================
 
@@ -148,8 +156,9 @@ subroutine init_search_range(search_range)
     real*8, allocatable, dimension(:,:) :: search_range
     real*8 :: eps_min, eps_max, rmin_min, rmin_max
     integer i,j
-    if (.not. allocated(search_range)) allocate(search_range(2, 2*(nopt+5)))
-    do i = 1, nopt+5
+    if (.not. allocated(search_range)) allocate(search_range(2,&
+                                        2*(nopt+num_one_four)))
+    do i = 1, nopt+num_one_four
         !eps parameters search range
         search_range(1, 2*i-1) = 1.5*init_val_search(2*i-1)
         search_range(2, 2*i-1) = 0.5*init_val_search(2*i-1)
@@ -165,11 +174,11 @@ logical function feasible(y)
     real*8, dimension(:) :: y 
     integer :: i,j
      
-    do i = 1, 2*(nopt+5)
-        if (abs(y(i)) .ge. 1.3*abs(init_val_search(i))) then
+    do i = 1, 2*(nopt+num_one_four)
+        if (abs(y(i)) .ge. 1.4*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.7*abs(init_val_search(i))) then
+        else if (abs(y(i)) .le. 0.6*abs(init_val_search(i))) then
             feasible = .false.
             return
         else
@@ -184,38 +193,6 @@ real*8 function sumconstr(y)
     real*8, dimension(:) :: y
     sumconstr = 0.0d0 
 end function sumconstr
-
-subroutine init_print_helper(print_helper)
-    implicit none
-    character(len=3), allocatable, dimension(:) :: print_helper
-    integer :: i, j, k
-   
-    if (.not. allocated(print_helper)) allocate(print_helper(nopt+num_one_four))
-    print_helper(1:nopt) = opt_species
-    k = 1
-    do i = nopt+1, nopt+num_one_four
-        do j = k, nopt
-            if (check_o_f(print_helper(j)) .eqv. .true.) then
-                print_helper(i) = print_helper(j)
-                k = j+1
-                exit
-            end if
-        end do
-    end do
-end subroutine init_print_helper
-
-logical function check_o_f(label)
-    integer :: i
-    character(len=3) :: label
-    do i = 1, nonefour
-        if (label == o_f_species(i)) then
-            check_o_f = .true.
-            return
-        else
-            check_o_f = .false.
-        end if
-    end do
-end function check_o_f
 
 
 end program lj_fit
