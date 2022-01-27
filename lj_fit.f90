@@ -3,40 +3,53 @@ program lj_fit
 use differential_evolution
 use utils
 implicit none
-character(len=100) :: base_name, lj_param_file, onefour_file, opt_file, junk
-character(len=100) :: psf_file, bond_file, crd_dir, onefour_species_file
-character(len=100) :: ref_name
+character(len=100) :: lj_param_chff, one_four_params, opt_file, junk
+character(len=100) :: psf_file, bond_file, crd_path_file, one_four_species
+character(len=100) :: ref_file
+character(len=100) :: string
 real*8, dimension(:,:), allocatable :: search_range
 real*8, allocatable, dimension(:) :: init_val_search, x
 real*8 :: energy, rmse
 integer :: i, j
+integer :: num_files, num_pep_atoms, n_onefour, ngenerations
+character(len=100) :: snum_files, snum_pep_atoms, snone_four, sngenerations
 logical :: verbose = .true.
 
 ! ============ START MAIN =================================================
 
+!COMMAND LINE INPUTS
+if (COMMAND_ARGUMENT_COUNT().ne.12) then
+    write(*,*) "ERROR: NEED 12 ARGUMENTS"
+    CALL EXIT(1)
+end if
+call GET_COMMAND_ARGUMENT(1, lj_param_chff) ! CHFF LJ parameters (normal int)
+call GET_COMMAND_ARGUMENT(2, one_four_params) ! CHFF LJ one four params
+call GET_COMMAND_ARGUMENT(3, one_four_species) ! CHFF one four species
+call GET_COMMAND_ARGUMENT(4, psf_file) ! psf file of system
+call GET_COMMAND_ARGUMENT(5, bond_file) ! bond data of system
+call GET_COMMAND_ARGUMENT(6, crd_path_file) ! path to crd path file
+call GET_COMMAND_ARGUMENT(7, opt_file) ! Atom species to optimize file
+call GET_COMMAND_ARGUMENT(8, ref_file) ! reference energies
+call GET_COMMAND_ARGUMENT(9, snum_files)
+call GET_COMMAND_ARGUMENT(10, snum_pep_atoms)
+call GET_COMMAND_ARGUMENT(11, snone_four)
+call GET_COMMAND_ARGUMENT(12, sngenerations)
 
-
-! File name declarations
-base_name = "data/test"
-lj_param_file = "def_params/lj_param_chff.dat"
-bond_file = "def_params/bond_data.dat"
-onefour_file = "def_params/one_four_lj.dat"
-psf_file = "def_params/ab_0.psf"
-crd_dir = "crd/"
-ref_name = "data/dft_ref_energies_avg.dat"
-opt_file = "def_params/cons_species.dat"
-onefour_species_file = "def_params/one_four_species.dat"
+read(snum_files, *) num_files
+read(snum_pep_atoms, *) num_pep_atoms
+read(snone_four, *) n_onefour
+read(sngenerations, *) ngenerations
 
 ! initialize parameters and other things
-call init_params(num_files          =      198,&
+call init_params(num_files          =      num_files,&
                  cut_on             =   10.0d0,&
                  cut_off            =   12.0d0,&
-                 num_pep_atoms      =       34,&
-                 n_onefour          =        1)
+                 num_pep_atoms      =       num_pep_atoms,&
+                 n_onefour          =        n_onefour)
 
-call init_system(psf_file, lj_param_file, onefour_file, bond_file,&
-opt_file, onefour_species_file)
-call load_data(crd_dir, ref_name)
+call init_system(psf_file, lj_param_chff, one_four_params, bond_file,&
+opt_file, one_four_species)
+call load_data(crd_path_file, ref_file)
 
 allocate(init_val_search(2*(nopt+num_one_four)))
 allocate(x(2*(nopt+num_one_four)))
@@ -59,15 +72,17 @@ call calc_look_ups()
 
 call init_search_range(search_range)
 
-do i = 1,nopt+num_one_four
-    write(*,*) print_helper(i), init_val_search(2*i-1), init_val_search(2*i)
+
+write(*,*) "FOLLOWING ATOM TYPES ARE BEING OPTIMIZED:"
+do i = 1,nopt
+    write(*,*) print_helper(i)
 end do
 
 
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
-             set_maxGens             = 20000,               &
+             set_maxGens             = ngenerations,               &
              set_maxChilds           = 1,                &
              set_forceRange          = .false.,         &
              set_mutationStrategy    = DErand1,  &
@@ -139,13 +154,13 @@ subroutine init_pop(pop)
     end do
 end subroutine init_pop
 
-subroutine init_system(psf_file, lj_param_file, onefour_file, bond_file,&
-opt_file, onefour_species_file)
-    character(len=100) :: psf_file, lj_param_file, onefour_file, bond_file
-    character(len=100) :: opt_file, onefour_species_file
+subroutine init_system(psf_file, lj_param_chff, one_four_params, bond_file,&
+opt_file, one_four_species)
+    character(len=100) :: psf_file, lj_param_chff, one_four_params, bond_file
+    character(len=100) :: opt_file, one_four_species
     call load_psf(psf_file)
-    call load_lj_params(lj_param_file)
-    call load_one_four_params(onefour_file, onefour_species_file)
+    call load_lj_params(lj_param_chff)
+    call load_one_four_params(one_four_params, one_four_species)
     call load_opt_spec(opt_file)
     call get_excl_array(bond_file)
     

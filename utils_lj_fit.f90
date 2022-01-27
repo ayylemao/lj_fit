@@ -9,7 +9,7 @@ real*8, allocatable, dimension(:,:) :: chff_lj_params
 real*8, allocatable, dimension(:,:) :: o_f_array
 real*8, allocatable, dimension(:,:,:) :: crd_data, dist_array
 real*8, allocatable, dimension(:) :: ref_energies
-character(len=100), allocatable, dimension(:) :: crd_names
+character(len=200), allocatable, dimension(:) :: crd_names
 integer :: natoms, nfiles, nspecies, nbonds, nonefour, nopt, npep_atoms
 integer :: num_one_four
 integer, allocatable, dimension(:,:) :: bond_array
@@ -60,25 +60,21 @@ subroutine read_crd_file(file_name, crd_conf)
 end subroutine read_crd_file
 
 
-subroutine load_data(base_name, ref_file)
+subroutine load_data(crd_name_path, ref_file)
     implicit none
-    character(len=100) :: base_name, enum, file_name, ref_file
+    character(len=100) :: crd_name_path, enum, file_name, ref_file
     real*8, allocatable, dimension(:,:) :: crd_conf
-    integer :: i, iatom, idir
-    
+    integer :: i, iatom, idir 
     allocate(crd_data(natoms, 3, nfiles))
     allocate(crd_names(nfiles))
-    open(69, file="crd/crd_names.dat", status = 'old')
+    open(69, file=crd_name_path, status = 'old')
     do i = 1, nfiles
-        read(69,*) crd_names(i)
+        read(69,'(A)') crd_names(i)
     end do
     crd_data = 0
-    do i = 1, nfiles
-        
-        file_name = trim(base_name) // trim(crd_names(i))
-        
+    do i = 1, nfiles 
+        file_name = trim(crd_names(i)) 
         call read_crd_file(file_name, crd_conf)
-
         do iatom = 1, natoms
             do idir = 1, 3 
                 crd_data(iatom, idir, i) = crd_conf(iatom, idir)
