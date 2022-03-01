@@ -56,7 +56,7 @@ allocate(x(2*(nopt+num_one_four)))
 
 
 init_val_search=0
-open(69, file="def_params/test_oboh1h.dat", status = 'old')
+open(69, file="def_params/test_x.dat", status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
@@ -77,7 +77,7 @@ write(*,*) "FOLLOWING ATOM TYPES ARE BEING OPTIMIZED:"
 do i = 1,nopt
     write(*,*) print_helper(i)
 end do
-
+write(*,*) "RMSE TO CHFF PARAMS", opt_func(init_val_search)
 
 
 call DE_init(set_range               = search_range,     &
@@ -103,7 +103,7 @@ do i = 1,nfiles
     write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
 end do
 write(*,*) "INITIAL RMSE: ", opt_func(init_val_search)/sqrt(float(nfiles))
-write(*,*) "FINAL RMSE: ", opt_func(x)/sqrt(198.0d0)
+write(*,*) "FINAL RMSE: ", opt_func(x)
 write(*,*) "FINAL LJ PARAMS:"
 do i = 1, nopt+num_one_four
     write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
@@ -127,7 +127,7 @@ real*8 function opt_func(y)
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do  
-    opt_func = sqrt(rmse) 
+    opt_func = sqrt(rmse/nfiles)
 end function opt_func 
 
 subroutine calc_full_lj(energies, y)

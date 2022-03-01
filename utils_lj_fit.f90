@@ -296,15 +296,15 @@ real*8 function get_eps_spec(iatom, x)
     real*8, dimension(2*(nopt+num_one_four)) :: x
     optimize = is_opt_arr(iatom) 
     if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .true.)) then
-        lj_index = label_to_x_vec_o_f(at_to_label(iatom))
+        lj_index = label_to_x_vec_o_f(at_to_label(iatom)) 
         get_eps_spec = -1*abs(x(2*lj_index-1))
         return
     else if ((optimize .eqv. .true.) .and. (is_o_f(iatom) .eqv. .false.)) then
         lj_index = stan_lj_index(iatom) 
         get_eps_spec = -1*abs(x(2*lj_index-1))
         return
-    else 
-        lj_index = stan_lj_index(iatom) 
+    else  
+       lj_index = stan_lj_index(iatom) 
         get_eps_spec = o_f_array(lj_index, 1)
     end if
 end function get_eps_spec
@@ -348,7 +348,7 @@ subroutine get_lj_energy(ifile, energy, x)
                 rmin2 = get_rmin_stand(jatom, x)  
                 if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
                 do i = 1, nopt+5
-                    write(*,*)
+                    write(*,*) "ERROR: EPS larger than 0"
                     write(*,*) x(2*i-1), x(2*i) 
                 end do
                 end if
