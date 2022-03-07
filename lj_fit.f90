@@ -5,11 +5,11 @@ use utils
 implicit none
 character(len=100) :: lj_param_chff, one_four_params, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_path_file, one_four_species
-character(len=100) :: ref_file
+character(len=100) :: ref_file, up_bound, low_bound, pep_ref
 character(len=100) :: string
 real*8, dimension(:,:), allocatable :: search_range
 real*8, allocatable, dimension(:) :: init_val_search, x
-real*8 :: energy, rmse
+real*8 :: energy, rmse, l_bound, u_bound
 integer :: i, j
 integer :: num_files, num_pep_atoms, n_onefour, ngenerations
 character(len=100) :: snum_files, snum_pep_atoms, snone_four, sngenerations
@@ -18,8 +18,8 @@ logical :: verbose = .true.
 ! ============ START MAIN =================================================
 
 !COMMAND LINE INPUTS
-if (COMMAND_ARGUMENT_COUNT().ne.12) then
-    write(*,*) "ERROR: NEED 12 ARGUMENTS"
+if (COMMAND_ARGUMENT_COUNT().ne.14) then
+    write(*,*) "ERROR: NEED 14 ARGUMENTS"
     CALL EXIT(1)
 end if
 call GET_COMMAND_ARGUMENT(1, lj_param_chff) ! CHFF LJ parameters (normal int)
@@ -34,22 +34,31 @@ call GET_COMMAND_ARGUMENT(9, snum_files)
 call GET_COMMAND_ARGUMENT(10, snum_pep_atoms)
 call GET_COMMAND_ARGUMENT(11, snone_four)
 call GET_COMMAND_ARGUMENT(12, sngenerations)
+call GET_COMMAND_ARGUMENT(13, low_bound)
+call GET_COMMAND_ARGUMENT(14, up_bound)
+
+pep_ref = "/home/vogler/lj_fit/data/b3lypdz_pep.dat"
 
 read(snum_files, *) num_files
 read(snum_pep_atoms, *) num_pep_atoms
 read(snone_four, *) n_onefour
 read(sngenerations, *) ngenerations
+read(up_bound, *) u_bound
+read(low_bound, *) l_bound
 
 ! initialize parameters and other things
-call init_params(num_files          =      num_files,&
-                 cut_on             =   10.0d0,&
-                 cut_off            =   12.0d0,&
+call init_params(num_files          =       num_files,&
+                 cut_on             =       10.0d0,&
+                 cut_off            =       12.0d0,&
                  num_pep_atoms      =       num_pep_atoms,&
-                 n_onefour          =        n_onefour)
+                 n_onefour          =       n_onefour,&
+                 l_bound            =       l_bound,&
+                 u_bound            =       u_bound)
+                    
 
 call init_system(psf_file, lj_param_chff, one_four_params, bond_file,&
 opt_file, one_four_species)
-call load_data(crd_path_file, ref_file)
+call load_data(crd_path_file, ref_file, pep_ref)
 
 allocate(init_val_search(2*(nopt+num_one_four)))
 allocate(x(2*(nopt+num_one_four)))
@@ -88,7 +97,7 @@ call DE_init(set_range               = search_range,     &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 1)
+             set_Nprint              = 10)
 
 
 call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
@@ -102,7 +111,7 @@ do i = 1,nfiles
     call get_lj_energy(i, energy, x)
     write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
 end do
-write(*,*) "INITIAL RMSE: ", opt_func(init_val_search)/sqrt(float(nfiles))
+write(*,*) "INITIAL RMSE: ", opt_func(init_val_search)
 write(*,*) "FINAL RMSE: ", opt_func(x)
 write(*,*) "FINAL LJ PARAMS:"
 do i = 1, nopt+num_one_four
@@ -115,7 +124,7 @@ contains
  
 real*8 function opt_func(y)
     real*8, dimension(:) :: y
-    real*8, dimension(nfiles) :: energies
+    real*8, dimension(nfiles) :: energies, p_energies
     real*8 :: curr_energy, ref_val, rmse
     integer i, j
     real*8 :: t1, t2
@@ -127,7 +136,12 @@ real*8 function opt_func(y)
     do i = 1,nfiles 
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do  
-    opt_func = sqrt(rmse/nfiles)
+    
+    do i = 1, nfiles
+        call get_lj_pep(i, p_energies(i), y)
+        rmse = rmse + (pep_energies(i) - p_energies(i))**2
+    end do 
+    opt_func = sqrt(rmse/(2*nfiles))
 end function opt_func 
 
 subroutine calc_full_lj(energies, y)
@@ -190,10 +204,10 @@ logical function feasible(y)
     integer :: i,j
      
     do i = 1, 2*(nopt+num_one_four)
-        if (abs(y(i)) .ge. 1.4*abs(init_val_search(i))) then
+        if (abs(y(i)) .ge. upper_bound*abs(init_val_search(i))) then
             feasible = .false.
             return
-        else if (abs(y(i)) .le. 0.6*abs(init_val_search(i))) then
+        else if (abs(y(i)) .le. lower_bound*abs(init_val_search(i))) then
             feasible = .false.
             return
         else

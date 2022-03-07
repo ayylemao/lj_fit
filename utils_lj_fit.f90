@@ -8,7 +8,7 @@ character(len=4), allocatable, dimension(:) :: opt_species, o_f_species, all_o_f
 real*8, allocatable, dimension(:,:) :: chff_lj_params 
 real*8, allocatable, dimension(:,:) :: o_f_array
 real*8, allocatable, dimension(:,:,:) :: crd_data, dist_array
-real*8, allocatable, dimension(:) :: ref_energies
+real*8, allocatable, dimension(:) :: ref_energies, pep_energies
 character(len=200), allocatable, dimension(:) :: crd_names
 integer :: natoms, nfiles, nspecies, nbonds, nonefour, nopt, npep_atoms
 integer :: num_one_four
@@ -16,28 +16,31 @@ integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
 integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
 logical, allocatable, dimension(:) :: is_opt_arr
-real*8 :: r_off, r_on
+real*8 :: r_off, r_on, upper_bound, lower_bound
 character(len=3), allocatable, dimension(:) :: print_helper
 
 public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
-public stan_lj_index, spec_lj_index, is_opt_arr
-public nonefour, num_one_four, all_o_f, print_helper
+public stan_lj_index, spec_lj_index, is_opt_arr, upper_bound, lower_bound
+public nonefour, num_one_four, all_o_f, print_helper, pep_energies
 
 
 contains
 ! initializes parameters of system
 
-subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour)
+subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour,&
+                       l_bound, u_bound)
     implicit none
     integer :: num_atoms, num_files, num_pep_atoms, num_species, n_onefour
-    real*8 :: cut_on, cut_off 
+    real*8 :: cut_on, cut_off, l_bound, u_bound 
     nfiles = num_files
     r_on = cut_on
     r_off = cut_off 
     npep_atoms = num_pep_atoms
     num_one_four = n_onefour
+    upper_bound = u_bound
+    lower_bound = l_bound 
    
 end subroutine init_params
 
@@ -60,9 +63,9 @@ subroutine read_crd_file(file_name, crd_conf)
 end subroutine read_crd_file
 
 
-subroutine load_data(crd_name_path, ref_file)
+subroutine load_data(crd_name_path, ref_file, pep_file)
     implicit none
-    character(len=100) :: crd_name_path, enum, file_name, ref_file
+    character(len=100) :: crd_name_path, enum, file_name, ref_file, pep_file
     real*8, allocatable, dimension(:,:) :: crd_conf
     integer :: i, iatom, idir 
     allocate(crd_data(natoms, 3, nfiles))
@@ -88,6 +91,14 @@ subroutine load_data(crd_name_path, ref_file)
         read(69, *) ref_energies(i)
     end do
     close(69)
+
+    open(69, file=pep_file, status = 'old')
+    allocate(pep_energies(nfiles))
+    do i = 1, nfiles
+        read(69, *) pep_energies(i)
+    end do
+    close(69)
+     
     call crt_dist_array()
 end subroutine load_data
 
@@ -367,6 +378,47 @@ subroutine get_lj_energy(ifile, energy, x)
         end do    
     end do
 end subroutine get_lj_energy
+
+
+subroutine get_lj_pep(ifile, energy, x)
+    implicit none
+    real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
+    integer :: iatom, jatom, bond_dist, i, ifile
+    real*8, dimension(2*(nopt+num_one_four)) :: x, curr_sol
+    real*8 :: t1, t2 
+    energy = 0.0 
+    curr_lj_energy = 0.0
+    do iatom = 1, npep_atoms
+        do jatom = iatom + 1, npep_atoms
+            bond_dist = excl_array(iatom, jatom) 
+            dist_ij = dist_array(iatom, jatom, ifile)
+            if (bond_dist .ge. 4) then
+                eps1 = get_eps_stand(iatom, x)
+                eps2 = get_eps_stand(jatom, x)
+                rmin1 = get_rmin_stand(iatom, x)
+                rmin2 = get_rmin_stand(jatom, x)  
+                if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
+                do i = 1, nopt+5
+                    write(*,*) "ERROR: EPS larger than 0"
+                    write(*,*) x(2*i-1), x(2*i) 
+                end do
+                end if
+                curr_lj_energy = calc_lj_pair(eps1, rmin1, eps2, rmin2, dist_ij)
+                curr_lj_energy = curr_lj_energy*vswitch(dist_ij, r_on, r_off)
+            else if (bond_dist == 3) then
+                eps1 = get_eps_spec(iatom, x)
+                eps2 = get_eps_spec(jatom, x)
+                rmin1 = get_rmin_spec(iatom, x)
+                rmin2 = get_rmin_spec(jatom, x)
+                curr_lj_energy = calc_lj_pair(eps1, rmin1, eps2, rmin2, dist_ij)    
+                curr_lj_energy = curr_lj_energy*vswitch(dist_ij, r_on, r_off) 
+            end if
+            energy = energy + curr_lj_energy  
+            curr_lj_energy = 0.0                      
+        end do    
+    end do
+end subroutine get_lj_pep
+
 
 real*8 function vswitch(dist, r_on, r_off)
     real*8 :: dist, r_on, r_off
