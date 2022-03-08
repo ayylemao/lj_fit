@@ -16,28 +16,31 @@ integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
 integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
 logical, allocatable, dimension(:) :: is_opt_arr
-real*8 :: r_off, r_on
+real*8 :: r_off, r_on, upper_bound, lower_bound
 character(len=3), allocatable, dimension(:) :: print_helper
 
 public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
-public stan_lj_index, spec_lj_index, is_opt_arr
+public stan_lj_index, spec_lj_index, is_opt_arr, upper_bound, lower_bound
 public nonefour, num_one_four, all_o_f, print_helper
 
 
 contains
 ! initializes parameters of system
 
-subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour)
+subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour,&
+                        l_bound, u_bound)
     implicit none
     integer :: num_atoms, num_files, num_pep_atoms, num_species, n_onefour
-    real*8 :: cut_on, cut_off 
+    real*8 :: cut_on, cut_off, l_bound, u_bound
     nfiles = num_files
     r_on = cut_on
     r_off = cut_off 
     npep_atoms = num_pep_atoms
     num_one_four = n_onefour
+    upper_bound = u_bound
+    lower_bound = l_bound
    
 end subroutine init_params
 
@@ -263,7 +266,7 @@ real*8 function get_eps_stand(iatom, x)
     optimize = is_opt_arr(iatom) 
     if (optimize .eqv. .true.) then
         lj_index = stan_lj_index(iatom) 
-        get_eps_stand = -1*abs(x(2*lj_index-1))
+        get_eps_stand = -1.0d0*abs(x(2*lj_index-1))
         return
     else
         lj_index = stan_lj_index(iatom) 
@@ -346,7 +349,7 @@ subroutine get_lj_energy(ifile, energy, x)
                 eps2 = get_eps_stand(jatom, x)
                 rmin1 = get_rmin_stand(iatom, x)
                 rmin2 = get_rmin_stand(jatom, x)  
-                if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
+                if ((eps1 .gt. 0.0d0) .or. (eps2 .gt. 0.0d0)) then
                 do i = 1, nopt+5
                     write(*,*) "ERROR: EPS larger than 0"
                     write(*,*) x(2*i-1), x(2*i) 
