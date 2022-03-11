@@ -37,7 +37,7 @@ call GET_COMMAND_ARGUMENT(12, sngenerations)
 call GET_COMMAND_ARGUMENT(13, low_bound)
 call GET_COMMAND_ARGUMENT(14, up_bound)
 
-pep_ref = "/home/vogler/lj_fit/data/b3lypdz_pep.dat"
+pep_ref = "/home/vogler/lj_fit/data/chff_pep_b3lypdz.dat"
 
 read(snum_files, *) num_files
 read(snum_pep_atoms, *) num_pep_atoms

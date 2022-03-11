@@ -357,7 +357,7 @@ subroutine get_lj_energy(ifile, energy, x)
                 eps2 = get_eps_stand(jatom, x)
                 rmin1 = get_rmin_stand(iatom, x)
                 rmin2 = get_rmin_stand(jatom, x)  
-                if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
+                if ((eps1 .gt. 0.0d0) .or. (eps2 .gt. 0.0d0)) then
                 do i = 1, nopt+5
                     write(*,*) "ERROR: EPS larger than 0"
                     write(*,*) x(2*i-1), x(2*i) 
@@ -397,7 +397,7 @@ subroutine get_lj_pep(ifile, energy, x)
                 eps2 = get_eps_stand(jatom, x)
                 rmin1 = get_rmin_stand(iatom, x)
                 rmin2 = get_rmin_stand(jatom, x)  
-                if ((eps1 .ge. 0.0d0) .or. (eps2 .ge. 0.0d0)) then
+                if ((eps1 .gt. 0.0d0) .or. (eps2 .gt. 0.0d0)) then
                 do i = 1, nopt+5
                     write(*,*) "ERROR: EPS larger than 0"
                     write(*,*) x(2*i-1), x(2*i) 
