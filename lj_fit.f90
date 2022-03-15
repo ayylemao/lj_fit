@@ -139,12 +139,8 @@ real*8 function opt_func(y)
     
     do i = 1, nfiles
         call get_lj_pep(i, p_energies(i), y)  
-    end do 
-    pep_ref_val = sum(pep_energies)/size(pep_energies) 
-    pep_energies = pep_energies - pep_ref_val
-    do i = 1, nfiles
         rmse = rmse + (pep_energies(i) - p_energies(i))**2
-    end do
+    end do 
     opt_func = sqrt(rmse/(nfiles))
 end function opt_func 
 
