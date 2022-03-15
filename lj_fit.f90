@@ -125,23 +125,27 @@ contains
 real*8 function opt_func(y)
     real*8, dimension(:) :: y
     real*8, dimension(nfiles) :: energies, p_energies
-    real*8 :: curr_energy, ref_val, rmse
+    real*8 :: curr_energy, ref_val, rmse, pep_ref_val
     integer i, j
     real*8 :: t1, t2
     energies = 0
-    call calc_full_lj(energies, y) 
-    ref_val = sum(energies)/size(energies)
-    energies = energies - ref_val
+    !call calc_full_lj(energies, y) 
+    !ref_val = sum(energies)/size(energies)
+    !energies = energies - ref_val
     rmse = 0.0d0   
-    do i = 1,nfiles 
-        rmse = rmse + (ref_energies(i) - energies(i))**2
-    end do  
+    !do i = 1,nfiles 
+    !    rmse = rmse + (ref_energies(i) - energies(i))**2
+    !end do  
     
     do i = 1, nfiles
-        call get_lj_pep(i, p_energies(i), y)
-        rmse = rmse + (pep_energies(i) - p_energies(i))**2
+        call get_lj_pep(i, p_energies(i), y)  
     end do 
-    opt_func = sqrt(rmse/(2*nfiles))
+    pep_ref_val = sum(pep_energies)/size(pep_energies) 
+    pep_energies = pep_energies - pep_ref_val
+    do i = 1, nfiles
+        rmse = rmse + (pep_energies(i) - p_energies(i))**2
+    end do
+    opt_func = sqrt(rmse/(nfiles))
 end function opt_func 
 
 subroutine calc_full_lj(energies, y)
