@@ -16,24 +16,24 @@ integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
 integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
 logical, allocatable, dimension(:) :: is_opt_arr
-real*8 :: r_off, r_on, upper_bound, lower_bound
+real*8 :: r_off, r_on, upper_bound, lower_bound, rmse_multi
 character(len=3), allocatable, dimension(:) :: print_helper
 
 public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
 public stan_lj_index, spec_lj_index, is_opt_arr, upper_bound, lower_bound
-public nonefour, num_one_four, all_o_f, print_helper
+public nonefour, num_one_four, all_o_f, print_helper, rmse_multi
 
 
 contains
 ! initializes parameters of system
 
 subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour,&
-                        l_bound, u_bound)
+                        l_bound, u_bound, con_multi)
     implicit none
     integer :: num_atoms, num_files, num_pep_atoms, num_species, n_onefour
-    real*8 :: cut_on, cut_off, l_bound, u_bound
+    real*8 :: cut_on, cut_off, l_bound, u_bound, con_multi
     nfiles = num_files
     r_on = cut_on
     r_off = cut_off 
@@ -41,6 +41,7 @@ subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour,&
     num_one_four = n_onefour
     upper_bound = u_bound
     lower_bound = l_bound
+    rmse_multi = con_multi
    
 end subroutine init_params
 

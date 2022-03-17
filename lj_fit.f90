@@ -5,11 +5,11 @@ use utils
 implicit none
 character(len=100) :: lj_param_chff, one_four_params, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_path_file, one_four_species
-character(len=100) :: ref_file, up_bound, low_bound
+character(len=100) :: ref_file, up_bound, low_bound, inp_multi
 character(len=100) :: string
 real*8, dimension(:,:), allocatable :: search_range
 real*8, allocatable, dimension(:) :: init_val_search, x
-real*8 :: energy, rmse, l_bound, u_bound
+real*8 :: energy, rmse, l_bound, u_bound, cons_multi
 integer :: i, j
 integer :: num_files, num_pep_atoms, n_onefour, ngenerations
 character(len=100) :: snum_files, snum_pep_atoms, snone_four, sngenerations
@@ -18,8 +18,8 @@ logical :: verbose = .true.
 ! ============ START MAIN =================================================
 
 !COMMAND LINE INPUTS
-if (COMMAND_ARGUMENT_COUNT().ne.14) then
-    write(*,*) "ERROR: NEED 14 ARGUMENTS"
+if (COMMAND_ARGUMENT_COUNT().ne.15) then
+    write(*,*) "ERROR: NEED 15 ARGUMENTS"
     CALL EXIT(1)
 end if
 call GET_COMMAND_ARGUMENT(1, lj_param_chff) ! CHFF LJ parameters (normal int)
@@ -36,6 +36,7 @@ call GET_COMMAND_ARGUMENT(11, snone_four)
 call GET_COMMAND_ARGUMENT(12, sngenerations)
 call GET_COMMAND_ARGUMENT(13, low_bound)
 call GET_COMMAND_ARGUMENT(14, up_bound)
+call GET_COMMAND_ARGUMENT(15, inp_multi)
 
 
 read(snum_files, *) num_files
@@ -44,6 +45,7 @@ read(snone_four, *) n_onefour
 read(sngenerations, *) ngenerations
 read(up_bound, *) u_bound
 read(low_bound, *) l_bound
+read(inp_multi, *) cons_multi
 ! initialize parameters and other things
 call init_params(num_files          =       num_files,&
                  cut_on             =       10.0d0,&
@@ -51,7 +53,8 @@ call init_params(num_files          =       num_files,&
                  num_pep_atoms      =       num_pep_atoms,&
                  n_onefour          =       n_onefour,&
                  l_bound            =       l_bound,&
-                 u_bound            =       u_bound)
+                 u_bound            =       u_bound,&
+                 con_multi         =       cons_multi)
 
 call init_system(psf_file, lj_param_chff, one_four_params, bond_file,&
 opt_file, one_four_species)
@@ -85,8 +88,11 @@ do i = 1,nopt
     write(*,*) print_helper(i)
 end do
 write(*,*) "RMSE TO CHFF PARAMS", opt_func(init_val_search)
+
+
+write(*,*) rmse_penalty(init_val_search, init_val_search, 1.0d0)
  
-!call exit(1)
+call exit(1)
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
              set_maxGens             = ngenerations,               &
@@ -135,7 +141,19 @@ real*8 function opt_func(y)
         rmse = rmse + (ref_energies(i) - energies(i))**2
     end do  
     opt_func = sqrt(rmse/nfiles)
+    opt_func = opt_func + rmse_penalty(y, init_val_search, rmse_multi)
 end function opt_func 
+
+real*8 function rmse_penalty(y, ref, multi)
+    real*8, dimension(:) :: y, ref
+    real*8 :: multi
+    rmse_penalty = 0.d0
+    do i = 1, 2*(nopt+num_one_four) 
+        rmse_penalty = rmse_penalty + ((y(i) - ref(i))*multi)**2
+    end do 
+    rmse_penalty = sqrt(rmse_penalty/(2*nopt/num_one_four))
+end function rmse_penalty  
+
 
 subroutine calc_full_lj(energies, y)
     implicit none
