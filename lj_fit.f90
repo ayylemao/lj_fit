@@ -66,7 +66,7 @@ allocate(x(2*(nopt+num_one_four)))
 
 
 init_val_search=0
-open(69, file="def_params/test_x.dat", status = 'old')
+open(69, file="def_params/test_iamo.dat", status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
@@ -83,16 +83,13 @@ call calc_look_ups()
 call init_search_range(search_range)
 
 
+
 write(*,*) "FOLLOWING ATOM TYPES ARE BEING OPTIMIZED:"
 do i = 1,nopt
     write(*,*) print_helper(i)
 end do
 write(*,*) "RMSE TO CHFF PARAMS", opt_func(init_val_search)
 
-
-write(*,*) rmse_penalty(init_val_search, init_val_search, 1.0d0)
- 
-call exit(1)
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
              set_maxGens             = ngenerations,               &
@@ -116,7 +113,10 @@ do i = 1,nfiles
     write(*,*) energy, ref_energies(i), sqrt((energy-ref_energies(i))**2)
 end do
 write(*,*) "INITIAL RMSE: ", opt_func(init_val_search)
-write(*,*) "FINAL RMSE: ", opt_func(x)
+write(*,*) "FINAL RMSE WITH PENALTY: ", opt_func(x)
+write(*,*) "RMSE PENALTY: ", rmse_penalty(x, init_val_search, rmse_multi)
+write(*,*) "RMSE W/O PENALTY: ", opt_func(x) - rmse_penalty(x, init_val_search,&
+                                                                rmse_multi)
 write(*,*) "FINAL LJ PARAMS:"
 do i = 1, nopt+num_one_four
     write(*,'(A4,F10.5,2F10.5)') print_helper(i), 0.0, -abs(x(2*i-1)), abs(x(2*i))
@@ -151,7 +151,7 @@ real*8 function rmse_penalty(y, ref, multi)
     do i = 1, 2*(nopt+num_one_four) 
         rmse_penalty = rmse_penalty + ((y(i) - ref(i))*multi)**2
     end do 
-    rmse_penalty = sqrt(rmse_penalty/(2*nopt/num_one_four))
+    rmse_penalty = sqrt(rmse_penalty/(2*(nopt+num_one_four)))
 end function rmse_penalty  
 
 
