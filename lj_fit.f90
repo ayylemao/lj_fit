@@ -63,7 +63,7 @@ allocate(x(2*(nopt+num_one_four)))
 
 
 init_val_search=0
-open(69, file="def_params/test_x.dat", status = 'old')
+open(69, file="def_params/test_iamo.dat", status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
@@ -95,7 +95,7 @@ call DE_init(set_range               = search_range,     &
              set_mutationStrategy    = DErand1,  &
              set_crossProb           = 0.9d0,             &
              set_verbose             = verbose,          &
-             set_Nprint              = 10)
+             set_Nprint              = 1)
 
 
 call DE_optimize(opt_func, feasible, sumconstr, x, guess=init_val_search)
