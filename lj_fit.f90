@@ -66,7 +66,11 @@ allocate(x(2*(nopt+num_one_four)))
 
 
 init_val_search=0
-open(69, file="def_params/test_iamo.dat", status = 'old')
+
+! THIS IS STILL HARDCODED. IT IS A FILE WITH THE ORIGINAL LJ PARAMETERS WE ARE
+! OPTIMIZING. IT WAS ORIGINALY ONLY FOR DEBUGGING PURPOSES BUT HAS TO BE THERE
+! NOW SINCE WE ARE GENERATING OUR INITIAL GUESS FROM THIS
+open(69, file="def_params/test_tip4.dat", status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
@@ -89,6 +93,7 @@ do i = 1,nopt
     write(*,*) print_helper(i)
 end do
 write(*,*) "RMSE TO CHFF PARAMS", opt_func(init_val_search)
+
 
 call DE_init(set_range               = search_range,     &
              set_popSize             = 100,              &
@@ -125,7 +130,7 @@ end do
 ! =============== END MAIN ================================================
 
 contains
- 
+! objective function 
 real*8 function opt_func(y)
     real*8, dimension(:) :: y
     real*8, dimension(nfiles) :: energies
@@ -144,18 +149,19 @@ real*8 function opt_func(y)
     opt_func = opt_func + rmse_penalty(y, init_val_search, rmse_multi)
 end function opt_func 
 
+! RMSE penalty function to constrain the DE search space to only modify
+! parameters that impact the RMSE on a larger scale
 real*8 function rmse_penalty(y, ref, multi)
     real*8, dimension(:) :: y, ref
     real*8 :: multi
     rmse_penalty = 0.d0
-    !write(*,*) size(ref), size(y), 2*(nopt+num_one_four)
     do i = 1, 2*(nopt+num_one_four) 
         rmse_penalty = rmse_penalty + ((y(i) - ref(i))*multi)**2
     end do 
     rmse_penalty = sqrt(rmse_penalty/(2*(nopt+num_one_four)))
 end function rmse_penalty  
 
-
+! calculates the lj energies for all files
 subroutine calc_full_lj(energies, y)
     implicit none
     real*8, dimension(:) :: y
@@ -166,6 +172,7 @@ subroutine calc_full_lj(energies, y)
     end do
 end subroutine calc_full_lj
 
+! population initialization for DE
 subroutine init_pop(pop)
     real*8, dimension(:,:), intent(out) :: pop
     real*8 :: ran
@@ -180,6 +187,7 @@ subroutine init_pop(pop)
     end do
 end subroutine init_pop
 
+! calls all functions and subroutines needed for initialization of the system
 subroutine init_system(psf_file, lj_param_chff, one_four_params, bond_file,&
 opt_file, one_four_species)
     character(len=100) :: psf_file, lj_param_chff, one_four_params, bond_file
@@ -192,6 +200,7 @@ opt_file, one_four_species)
     
 end subroutine init_system
 
+! initializes DE search range
 subroutine init_search_range(search_range)
     implicit none
     real*8, allocatable, dimension(:,:) :: search_range
@@ -209,7 +218,8 @@ subroutine init_search_range(search_range)
     end do
 end subroutine init_search_range
 
-
+! checks feasability of solution, the upper and lower bound variable are passed
+! to the program from the command line
 logical function feasible(y)
     implicit none    
     real*8, dimension(:) :: y 
@@ -229,6 +239,7 @@ logical function feasible(y)
 
 end function feasible
 
+! sum constraint, currently not in use
 real*8 function sumconstr(y)
     implicit none   
     real*8, dimension(:) :: y

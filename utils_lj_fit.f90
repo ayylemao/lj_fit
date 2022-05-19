@@ -16,24 +16,24 @@ integer, allocatable, dimension(:,:) :: bond_array
 integer, allocatable, dimension(:,:) :: excl_array
 integer, allocatable, dimension(:) :: stan_lj_index, spec_lj_index
 logical, allocatable, dimension(:) :: is_opt_arr
-real*8 :: r_off, r_on, upper_bound, lower_bound
+real*8 :: r_off, r_on, upper_bound, lower_bound, rmse_multi
 character(len=3), allocatable, dimension(:) :: print_helper
 
 public ordering_array, lj_species, bond_array, nbonds, o_f_species, dist_array
 public natoms, nfiles, nspecies, chff_lj_params, nopt, crd_data, npep_atoms
 public excl_array, o_f_array, r_on, r_off, opt_species, ref_energies, crd_names
 public stan_lj_index, spec_lj_index, is_opt_arr, upper_bound, lower_bound
-public nonefour, num_one_four, all_o_f, print_helper
+public nonefour, num_one_four, all_o_f, print_helper, rmse_multi
 
 
 contains
 ! initializes parameters of system
 
 subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour,&
-                        l_bound, u_bound)
+                        l_bound, u_bound, con_multi)
     implicit none
     integer :: num_atoms, num_files, num_pep_atoms, num_species, n_onefour
-    real*8 :: cut_on, cut_off, l_bound, u_bound
+    real*8 :: cut_on, cut_off, l_bound, u_bound, con_multi
     nfiles = num_files
     r_on = cut_on
     r_off = cut_off 
@@ -41,9 +41,11 @@ subroutine init_params(num_files, cut_on, cut_off, num_pep_atoms, n_onefour,&
     num_one_four = n_onefour
     upper_bound = u_bound
     lower_bound = l_bound
+    rmse_multi = con_multi
    
 end subroutine init_params
 
+! reads coordinates of a single crd file in chff .crd extended format
 subroutine read_crd_file(file_name, crd_conf)
     implicit none
     character(len=100) :: file_name, junk
@@ -63,6 +65,8 @@ subroutine read_crd_file(file_name, crd_conf)
 end subroutine read_crd_file
 
 
+! reads coordinates of all files mentioned in the file with path crd_name_path
+! and reads the reference energy file
 subroutine load_data(crd_name_path, ref_file)
     implicit none
     character(len=100) :: crd_name_path, enum, file_name, ref_file
@@ -110,6 +114,8 @@ subroutine load_lj_params(file_name)
     close(69)
 end subroutine load_lj_params
 
+! loads in parameters for one four species. If atom has no one four parameters
+! defined, the normal parameters are saved at that place instead
 subroutine load_one_four_params(file_name, name_file)
     implicit none
     character(len=100) :: file_name, junk, name_file
@@ -131,6 +137,7 @@ subroutine load_one_four_params(file_name, name_file)
     close(69) 
 end subroutine load_one_four_params
 
+! loads atom ordering into memory
 subroutine load_psf(file_name)
     implicit none
     character(len=100) :: file_name, junk
@@ -147,6 +154,7 @@ subroutine load_psf(file_name)
     close(69)
 end subroutine load_psf     
 
+! loads atom names that are to be optimized into memory from the opt file
 subroutine load_opt_spec(file_name)
     implicit none
     character(len=100) file_name
@@ -192,7 +200,7 @@ real*8 function calc_lj_pair(eps1, rmin1, eps2, rmin2, dist)
     calc_lj_pair = epsij*((rminij/dist)**12 - 2*((rminij/dist)**6)) 
 end function calc_lj_pair
 
-
+! checks if the atom in question is of a type that is to be optimized
 logical function is_opt(iatom)
     integer :: iatom, i
     do i=1, nopt 
@@ -205,6 +213,7 @@ logical function is_opt(iatom)
     end do
 end function is_opt
 
+! checks if the atom in question has one four parameters defined
 logical function is_o_f(iatom)
     integer :: iatom, i
     do i = 1, nonefour 
@@ -217,6 +226,7 @@ logical function is_o_f(iatom)
     end do
 end function is_o_f
 
+! converts the atom label to the index in the optimization x vector
 integer function label_to_opt_index(label)
     character(len=3) :: label
     integer :: i
@@ -228,6 +238,8 @@ integer function label_to_opt_index(label)
     end do
 end function label_to_opt_index
 
+! converts the atom label to the index of the one four parameter in the
+! optimization x vector
 integer function label_to_x_vec_o_f(label)
     character(len=3) :: label
     integer :: i
@@ -239,6 +251,8 @@ integer function label_to_x_vec_o_f(label)
     
 end function label_to_x_vec_o_f
 
+! calculates a look up table for all the indicies so the label_to_x_vec
+! functions dont have to be called each iteration for each atom 
 subroutine calc_look_ups() 
     implicit none
     integer :: iatom, lj_index, nopt_atoms
@@ -258,7 +272,8 @@ subroutine calc_look_ups()
 end subroutine calc_look_ups
     
     
-
+! gets the epsilon from the x-vector or CHFF lookup table if the atom in
+! question is to be optimized or not respectivly
 real*8 function get_eps_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
@@ -276,6 +291,8 @@ real*8 function get_eps_stand(iatom, x)
 end function get_eps_stand
 
 
+! gets the R_min from the x-vector or CHFF lookup table if the atom in
+! question is to be optimized or not respectivly
 real*8 function get_rmin_stand(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
@@ -293,6 +310,8 @@ real*8 function get_rmin_stand(iatom, x)
 end function get_rmin_stand
 
 
+! gets the ONE-FOUR epsilon from the x-vector or CHFF lookup table if the atom in
+! question is to be optimized or not respectivly
 real*8 function get_eps_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
@@ -313,6 +332,8 @@ real*8 function get_eps_spec(iatom, x)
 end function get_eps_spec
 
 
+! gets the ONE-FOUR RMIN from the x-vector or CHFF lookup table if the atom in
+! question is to be optimized or not respectivly
 real*8 function get_rmin_spec(iatom, x)
     integer :: iatom, lj_index
     logical :: optimize
@@ -332,6 +353,8 @@ real*8 function get_rmin_spec(iatom, x)
     end if
 end function get_rmin_spec
 
+! calculates the LJ energy of the system for geometry (INT) ifile with LJ
+! parameter set x
 subroutine get_lj_energy(ifile, energy, x)
     implicit none
     real*8 :: energy, dist_ij, curr_lj_energy, eps1, eps2, rmin1, rmin2 
@@ -371,6 +394,7 @@ subroutine get_lj_energy(ifile, energy, x)
     end do
 end subroutine get_lj_energy
 
+! switching function with r_on and r_off the cut on and cut off distances
 real*8 function vswitch(dist, r_on, r_off)
     real*8 :: dist, r_on, r_off
     
@@ -387,7 +411,8 @@ real*8 function vswitch(dist, r_on, r_off)
     end if
 end function vswitch
 
-
+! calculates the distance array for each geometry and saves it into memory for
+! faster execution
 subroutine crt_dist_array()
     implicit none
     integer :: iatom, jatom, ifile
@@ -402,7 +427,11 @@ subroutine crt_dist_array()
       end do
 end subroutine crt_dist_array
 
-
+! calculates graph style adjacency matrix for knowing if one four parameters
+! have to used or not in LJ energy calculation. If the atoms are not bonded,
+! the number of bonds between them is set to 1000. The bond data is a raw text
+! file with each line having one edge on them. Their distance is calculated via
+! the dijkstra graph algorithm
 subroutine get_excl_array(bond_file)
     implicit none
     type(graph) :: G
@@ -434,7 +463,7 @@ subroutine get_excl_array(bond_file)
     end do
 end subroutine get_excl_array
     
- 
+! initializes a helper array for pretty printing the results 
 subroutine init_print_helper()
     implicit none
 
@@ -454,6 +483,7 @@ subroutine init_print_helper()
     end do
 end subroutine init_print_helper
 
+! checks if atom with certain label has one four species defined or not
 logical function check_o_f(label)
     integer :: i
     character(len=3) :: label
