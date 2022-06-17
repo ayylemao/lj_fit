@@ -6,7 +6,7 @@ implicit none
 character(len=100) :: lj_param_chff, one_four_params, opt_file, junk
 character(len=100) :: psf_file, bond_file, crd_path_file, one_four_species
 character(len=100) :: ref_file, up_bound, low_bound, inp_multi
-character(len=100) :: string
+character(len=100) :: string, test_x
 real*8, dimension(:,:), allocatable :: search_range
 real*8, allocatable, dimension(:) :: init_val_search, x
 real*8 :: energy, rmse, l_bound, u_bound, cons_multi
@@ -18,8 +18,8 @@ logical :: verbose = .true.
 ! ============ START MAIN =================================================
 
 !COMMAND LINE INPUTS
-if (COMMAND_ARGUMENT_COUNT().ne.15) then
-    write(*,*) "ERROR: NEED 15 ARGUMENTS"
+if (COMMAND_ARGUMENT_COUNT().ne.16) then
+    write(*,*) "ERROR: NEED 16 ARGUMENTS"
     CALL EXIT(1)
 end if
 call GET_COMMAND_ARGUMENT(1, lj_param_chff) ! CHFF LJ parameters (normal int)
@@ -37,7 +37,7 @@ call GET_COMMAND_ARGUMENT(12, sngenerations)
 call GET_COMMAND_ARGUMENT(13, low_bound)
 call GET_COMMAND_ARGUMENT(14, up_bound)
 call GET_COMMAND_ARGUMENT(15, inp_multi)
-
+call GET_COMMAND_ARGUMENT(16, test_x)
 
 read(snum_files, *) num_files
 read(snum_pep_atoms, *) num_pep_atoms
@@ -70,7 +70,7 @@ init_val_search=0
 ! THIS IS STILL HARDCODED. IT IS A FILE WITH THE ORIGINAL LJ PARAMETERS WE ARE
 ! OPTIMIZING. IT WAS ORIGINALY ONLY FOR DEBUGGING PURPOSES BUT HAS TO BE THERE
 ! NOW SINCE WE ARE GENERATING OUR INITIAL GUESS FROM THIS
-open(69, file="def_params/test_tip4.dat", status = 'old')
+open(69, file=test_x, status = 'old')
 
 do i = 1, nopt
     read(69,*) junk, init_val_search(2*i-1), init_val_search(2*i) 
